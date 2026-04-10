@@ -32,7 +32,7 @@ export default class MainMenuScene extends Phaser.Scene {
     // Mobile-first: support both pointer (click/touch) and Enter key
     btnBg.setInteractive({ useHandCursor: true });
     const onStart = () => {
-      console.log('Start clicked — gameplay coming in Session 2');
+      this.scene.start('OverworldScene', { roomId: 'main-deck' });
     };
     btnBg.on('pointerdown', onStart);
     this.input.keyboard.on('keydown-ENTER', onStart);

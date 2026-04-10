@@ -23,6 +23,7 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 ## Architecture
 - All minigames extend `src/scenes/minigames/BaseMinigame.js`
 - Add new minigames as one new scene file plus one entry in `src/data/levels.js`
+- Rooms are JS arrays in `src/data/rooms.js`. Each room has a layout (2D array), doors (with target room + spawn coords), and a default playerSpawn. Add new rooms by adding entries here, no other code changes needed for the room data itself.
 - Game state lives on Phaser's `game.registry` via `src/systems/GameStateManager.js`
 - Cross-scene events go through `src/systems/EventBus.js`
 - Ritual order is enforced by `src/systems/SequenceGuard.js`
@@ -68,7 +69,7 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 - Do NOT mark a task complete if anything is broken — keep it in_progress and ask the user
 
 ## Current phase
-Session 1 complete. Phaser 3 + Vite project scaffolded. Boot and MainMenu scenes work. Deployed to https://LIFE-it-self.github.io/galaxy-boat/. Next: Session 2 — overworld with 4 boat rooms and player movement.
+Session 2 complete. 4 boat rooms (Main Deck, Bar, Galley, Bridge) playable with keyboard + touch. Doors work with camera fade. Next: Session 3 — dialog system, NPC interaction, minigame shell with placeholder game.
 
 ## Sprite/asset placeholder conventions (Sessions 1–7)
 - Player (Captain) = blue 16×16 rectangle
