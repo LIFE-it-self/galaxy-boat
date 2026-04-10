@@ -13,6 +13,10 @@
 // and the (tile) coordinates the player should spawn at in that target.
 // `playerSpawn` is only used the very first time you enter a room from the
 // main menu (door traversal supplies its own spawn coords).
+// `triggers` lists tiles that launch a minigame when the player steps onto
+// them. Each trigger is { x, y, levelId } and is matched against LEVELS in
+// src/data/levels.js. Once a level is in `completedMinigames` the trigger
+// becomes dormant and OverworldScene skips its `!` marker.
 //
 // Door graph:
 //
@@ -58,6 +62,11 @@ export const ROOMS = {
       // bottom door -> bar. Player spawns just below bar's top door.
       { x: 8, y: 13, targetRoom: 'bar',    spawnX: 8, spawnY: 1  },
     ],
+    triggers: [
+      // Pipe-smoke ritual step. Quiet corner of the deck, away from Cody
+      // (8,6), the doors (8,0)/(8,13), and the default spawn (8,7).
+      { x: 4, y: 10, levelId: 'pipe-smoke' },
+    ],
     playerSpawn: { x: 8, y: 7 },
   },
 
@@ -89,6 +98,11 @@ export const ROOMS = {
       { x: 8,  y: 0, targetRoom: 'main-deck', spawnX: 8, spawnY: 12 },
       { x: 15, y: 7, targetRoom: 'galley',    spawnX: 1, spawnY: 7  },
     ],
+    triggers: [
+      // Coke-drink minigame. Right side of the bar, away from doors and
+      // the default spawn at (8,7). Returns the player to (12,3).
+      { x: 12, y: 4, levelId: 'coke-drink' },
+    ],
     playerSpawn: { x: 8, y: 7 },
   },
 
@@ -118,6 +132,7 @@ export const ROOMS = {
     doors: [
       { x: 0, y: 7, targetRoom: 'bar', spawnX: 14, spawnY: 7 },
     ],
+    triggers: [],
     playerSpawn: { x: 8, y: 7 },
   },
 
@@ -147,6 +162,7 @@ export const ROOMS = {
     doors: [
       { x: 8, y: 13, targetRoom: 'main-deck', spawnX: 8, spawnY: 1 },
     ],
+    triggers: [],
     playerSpawn: { x: 8, y: 7 },
   },
 };

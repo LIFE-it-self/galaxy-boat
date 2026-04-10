@@ -6,6 +6,8 @@ import HUDScene from './scenes/HUDScene.js';
 import DialogScene from './scenes/DialogScene.js';
 import TransitionScene from './scenes/TransitionScene.js';
 import PlaceholderGame from './scenes/minigames/PlaceholderGame.js';
+import CokeDrinkGame from './scenes/minigames/CokeDrinkGame.js';
+import PipeSmoke from './scenes/minigames/PipeSmoke.js';
 import './systems/FailHandler.js'; // side-effect: registers global hurricane-fail logger
 
 const config = {
@@ -29,6 +31,8 @@ const config = {
     DialogScene,
     TransitionScene,
     PlaceholderGame,
+    CokeDrinkGame,
+    PipeSmoke,
     HUDScene,
   ],
 };

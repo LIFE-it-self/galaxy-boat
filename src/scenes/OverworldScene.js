@@ -10,6 +10,7 @@ import { Cody } from '../objects/Cody.js';
 import { DIALOGS } from '../data/dialogs.js';
 import { LEVELS } from '../data/levels.js';
 import { EventBus } from '../systems/EventBus.js';
+import { assertCanStartRitual } from '../systems/SequenceGuard.js';
 
 export default class OverworldScene extends Phaser.Scene {
   constructor() {
@@ -34,6 +35,12 @@ export default class OverworldScene extends Phaser.Scene {
     //    for now (real sprites land in Session 8). Depth ordering: floor
     //    underneath, walls above floor, doors above walls.
     this.renderRoomTiles();
+
+    // 1b. Trigger zones — tiles that launch a minigame on touch. Stored
+    //     on `this.triggers` for fast lookup in update(). Yellow `!`
+    //     markers are skipped for already-completed levels.
+    this.triggers = this.currentRoom.triggers || [];
+    this.renderTriggerMarkers();
 
     // 2. Spawn the player. If the scene was started by a door (override
     //    coords supplied), use those — otherwise use the room's default.
@@ -82,12 +89,36 @@ export default class OverworldScene extends Phaser.Scene {
       return;
     }
 
+    // Trigger zones fire once the player lands on their tile, same pattern
+    // as doors. Sequence guards live inside startMinigameForLevel.
+    const trigger = this.triggers.find(t => t.x === this.player.tileX && t.y === this.player.tileY);
+    if (trigger) {
+      this.startMinigameForLevel(trigger.levelId);
+      return;
+    }
+
     // Held-key movement. The if/else chain prevents diagonal moves: only
     // one direction can fire per frame.
     if (this.cursors.left.isDown)       this.handleMove('left');
     else if (this.cursors.right.isDown) this.handleMove('right');
     else if (this.cursors.up.isDown)    this.handleMove('up');
     else if (this.cursors.down.isDown)  this.handleMove('down');
+  }
+
+  // Draw a yellow `!` marker at every active trigger tile. Triggers whose
+  // level is already in completedMinigames are dormant — no marker, the
+  // player walks right over them.
+  renderTriggerMarkers() {
+    const done = this.game.registry.get('completedMinigames') || [];
+    this.triggers.forEach(t => {
+      if (done.includes(t.levelId)) return;
+      this.add.text(
+        t.x * TILE_SIZE + TILE_SIZE / 2,
+        t.y * TILE_SIZE + TILE_SIZE / 2,
+        '!',
+        { font: '12px monospace', color: '#ffff00' }
+      ).setOrigin(0.5).setDepth(5);
+    });
   }
 
   // Render every tile in this.currentRoom.layout as a colored rectangle.
@@ -174,32 +205,72 @@ export default class OverworldScene extends Phaser.Scene {
   }
 
   // Look for any NPC adjacent to the player. If found, launch DialogScene
-  // and stage the once-fire 'dialog-complete' subscription.
+  // and stage the once-fire 'dialog-complete' subscription. Cody swaps to
+  // a hint dialog after the first conversation.
   tryInteract() {
     if (this.dialogActive || this.isTransitioning || this.player.isMoving) return;
     const npc = this.npcs.find(n => n.isAdjacentTo(this.player.tileX, this.player.tileY));
     if (!npc) return;
-    const dialog = DIALOGS[npc.dialogId];
+
+    let dialogId = npc.dialogId;
+    if (dialogId === 'cody-intro' && this.game.registry.get('talkedToCody')) {
+      dialogId = 'cody-hint-1';
+    }
+    const dialog = DIALOGS[dialogId];
     if (!dialog) return;
 
     this.dialogActive = true;
+    if (npc.dialogId === 'cody-intro') {
+      this.game.registry.set('talkedToCody', true);
+    }
     EventBus.once('dialog-complete', () => this.onDialogComplete(npc));
     this.scene.launch('DialogScene', { lines: dialog.lines });
   }
 
-  // Called once after the player closes the Cody dialog. For Session 3 we
-  // always hand off to the placeholder minigame; later sessions branch on
-  // npc.dialogId or current ritual progress.
+  // Session 3 used to hard-launch PlaceholderGame here. Session 4 moves
+  // minigame entry to spatial trigger tiles in rooms.js, so dialog is now
+  // pure narrative — we just clear the input gate and return control.
   onDialogComplete(_npc) {
     this.dialogActive = false;
+  }
+
+  // Trigger-zone landing handler. Validates the level, runs the ritual
+  // sequence guard if applicable, then hands off to TransitionScene which
+  // shows the title card and launches the actual minigame scene.
+  startMinigameForLevel(levelId) {
+    if (this.isTransitioning) return;
+    const level = LEVELS[levelId];
+    if (!level) return;
+
+    // Already cleared? Trigger is dormant — walk right over it.
+    const done = this.game.registry.get('completedMinigames') || [];
+    if (done.includes(levelId)) return;
+
+    // Ritual steps must be attempted in order. assertCanStartRitual emits
+    // 'hurricane-fail' on failure; HUDScene's listener takes over from
+    // there (banner + reset + bounce to MainMenu).
+    if (level.isRitual) {
+      if (!assertCanStartRitual(this.game, level.ritualStep)) {
+        this.isTransitioning = true;
+        return;
+      }
+    }
+
+    this.isTransitioning = true;
     this.scene.start('TransitionScene', {
-      instruction: 'TEST!',
-      location: 'Test Room',
-      nextSceneKey: 'PlaceholderGame',
+      instruction: level.instruction,
+      location: level.location,
+      nextSceneKey: level.sceneKey,
       nextSceneData: {
-        levelConfig: LEVELS.placeholder,
+        levelConfig: level,
         returnSceneKey: 'OverworldScene',
-        returnSceneData: { roomId: 'main-deck', spawnX: 8, spawnY: 7 },
+        returnSceneData: {
+          roomId: this.currentRoom.id,
+          spawnX: this.player.tileX,
+          // Spawn one tile up so the player isn't standing on the trigger
+          // when they return — otherwise it would re-fire immediately.
+          spawnY: this.player.tileY - 1,
+        },
       },
     });
   }

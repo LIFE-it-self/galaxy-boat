@@ -19,6 +19,9 @@ export class GameStateManager {
     game.registry.set('completedMinigames', []);
     game.registry.set('selectedCodyVariant', 'default');
     game.registry.set('currentAct', 1);
+    // Set on the first cody-intro dialog. OverworldScene.tryInteract reads
+    // this to swap subsequent Cody chats to the cody-hint-1 line.
+    game.registry.set('talkedToCody', false);
   }
 
   static getState(game) {
