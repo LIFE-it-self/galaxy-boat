@@ -2,6 +2,11 @@ import Phaser from 'phaser';
 import BootScene from './scenes/BootScene.js';
 import MainMenuScene from './scenes/MainMenuScene.js';
 import OverworldScene from './scenes/OverworldScene.js';
+import HUDScene from './scenes/HUDScene.js';
+import DialogScene from './scenes/DialogScene.js';
+import TransitionScene from './scenes/TransitionScene.js';
+import PlaceholderGame from './scenes/minigames/PlaceholderGame.js';
+import './systems/FailHandler.js'; // side-effect: registers global hurricane-fail logger
 
 const config = {
   type: Phaser.AUTO,
@@ -15,7 +20,17 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, MainMenuScene, OverworldScene],
+  // Scene order matters for rendering: parallel scenes draw in this order,
+  // so HUDScene goes LAST to ensure it overlays every gameplay scene.
+  scene: [
+    BootScene,
+    MainMenuScene,
+    OverworldScene,
+    DialogScene,
+    TransitionScene,
+    PlaceholderGame,
+    HUDScene,
+  ],
 };
 
 new Phaser.Game(config);

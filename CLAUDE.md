@@ -21,14 +21,17 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 - `npm run deploy` — push dist/ to gh-pages branch (deploys to GitHub Pages)
 
 ## Architecture
-- All minigames extend `src/scenes/minigames/BaseMinigame.js`
+- All minigames extend `src/scenes/minigames/BaseMinigame.js`. **Never modify `BaseMinigame.js` from inside a minigame file** — it is the contract. Subclasses override `setupGame()` and call `this.win()` / `this.lose()`.
 - Add new minigames as one new scene file plus one entry in `src/data/levels.js`
 - Rooms are JS arrays in `src/data/rooms.js`. Each room has a layout (2D array), doors (with target room + spawn coords), and a default playerSpawn. Add new rooms by adding entries here, no other code changes needed for the room data itself.
-- Game state lives on Phaser's `game.registry` via `src/systems/GameStateManager.js`
-- Cross-scene events go through `src/systems/EventBus.js`
+- Game state lives on Phaser's `game.registry` via `src/systems/GameStateManager.js`. Always write through `set()` (not in-place mutation) so `changedata-*` events fire for HUD subscribers.
+- Failure threshold lives in `src/systems/GameStateManager.js` as `FAILURE_THRESHOLD` (currently 5).
+- Cross-scene events go through `src/systems/EventBus.js` (a shared Phaser `EventEmitter` singleton). Notable events: `'dialog-complete'`, `'hurricane-fail'`, `'victory'`.
 - Ritual order is enforced by `src/systems/SequenceGuard.js`
-- HUD is a parallel scene (`HUDScene`), not embedded in gameplay scenes
-- Dialog is a parallel scene (`DialogScene`), not modal blocking
+- HUD is a parallel scene (`HUDScene`), launched (not started) from `OverworldScene` and guarded by `scene.isActive` so it persists across `scene.restart()` (door transitions).
+- Dialog is a parallel scene (`DialogScene`), launched (not started). Overworld uses a `dialogActive` flag rather than `scene.pause()` to gate input while dialog is open.
+- Scene render order is the order of the `scene:` array in `src/index.js`. `HUDScene` MUST stay LAST so it draws on top of every gameplay scene.
+- Hurricane fail is currently a placeholder banner inside `HUDScene` (red text + 2s delay + bounce to MainMenuScene). Real cutscene comes in Session 7.
 
 ## Key patterns
 - Minigame lifecycle: TITLE_CARD → INSTRUCTION → PLAY → EVALUATE → WIN/LOSE (handled by BaseMinigame)
@@ -69,7 +72,7 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 - Do NOT mark a task complete if anything is broken — keep it in_progress and ask the user
 
 ## Current phase
-Session 2 complete. 4 boat rooms (Main Deck, Bar, Galley, Bridge) playable with keyboard + touch. Doors work with camera fade. Next: Session 3 — dialog system, NPC interaction, minigame shell with placeholder game.
+Session 3 complete. Dialog system, HUD, BaseMinigame, GameStateManager, SequenceGuard, EventBus, PlaceholderGame all wired. Full overworld → dialog → minigame → result loop works. Hurricane fail is placeholder text. Next: Session 4 — Act 1 real content (CokeDrink werewolf rhythm + Pipe Smoke ritual).
 
 ## Sprite/asset placeholder conventions (Sessions 1–7)
 - Player (Captain) = blue 16×16 rectangle
