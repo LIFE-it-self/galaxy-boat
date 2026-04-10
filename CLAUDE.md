@@ -42,7 +42,7 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 Plain JS classes (not Phaser scenes) that wrap a few `scene.add.*` objects. Constructed inside a minigame's `setupGame()` and destroyed automatically when the scene shuts down.
 
 - `src/ui/RhythmBar.js` — note-and-hit-zone rhythm tap UI. Notes spawn from the right and travel toward a green hit zone on the left; `hit()` returns true if the nearest pending note is inside ±150ms. Used by `CokeDrinkGame`; will be reused by `LullabyGame`.
-- `src/ui/PowerMeter.js` — fillable bar with decay. `add(delta)` bumps the value, `decay(deltaMs)` drains it (call from `update(time, delta)`), `value` is a plain property (not a getter — would conflict with internal assignments). Used by `PipeSmoke`; will be reused by `MotorboatGame`.
+- `src/ui/PowerMeter.js` — fillable bar with decay. `add(delta)` bumps the value, `decay(deltaMs)` drains it (call from `update(time, delta)`), `value` is a plain property (not a getter — would conflict with internal assignments). Supports horizontal (default) and vertical orientation. Used by `PipeSmoke` (horizontal) and `MotorboatGame` (vertical).
 
 ## Key patterns
 - Minigame lifecycle: TITLE_CARD → INSTRUCTION → PLAY → EVALUATE → WIN/LOSE (handled by BaseMinigame)
@@ -83,7 +83,7 @@ Plain JS classes (not Phaser scenes) that wrap a few `scene.add.*` objects. Cons
 - Do NOT mark a task complete if anything is broken — keep it in_progress and ask the user
 
 ## Current phase
-Session 5 complete. Act 2 playable: `ScubaDiveGame` (top-down K-fish collection, 10 gold for win, red fish cost a life, 30s timer, Arcade Physics) and `DinnerService` (ritual step 2, 3 Michelin-vs-mundane courses, all correct = win). Galley now has two triggers and a pink-rectangle Galley Mermaid NPC with a 3-line hint dialog. Sequence guard verified: walking to the Dinner trigger from a fresh game triggers the hurricane banner because Pipe is not done. `ritualProgress` can now reach `[1, 2]`. Next: Session 6 — Act 3 (Motorboat + Mermaid Shower).
+Session 6 complete. Act 3 playable: `MotorboatGame` (rapid-tap survival against a fast-draining vertical PowerMeter, 20s duration, SPACE / Q+W alternation / mobile L+R+Center buttons) and `MermaidShower` (ritual step 3, temperature slider with random mermaid splashes, 10 cumulative seconds in the green zone within a 25s window). Bridge now has two triggers (mirroring the galley pattern) and reuses `PowerMeter` in vertical orientation for the first time. `ritualProgress` can now reach `[1, 2, 3]`. Game is ~75% complete. Next: Session 7 — Act 4 (Lullaby + Mermaid Nap) AND the real cutscene scenes (hurricane fail + victory).
 
 ## Sprite/asset placeholder conventions (Sessions 1–7)
 - Player (Captain) = blue 16×16 rectangle

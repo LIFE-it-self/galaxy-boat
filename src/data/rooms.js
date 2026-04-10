@@ -170,7 +170,14 @@ export const ROOMS = {
     doors: [
       { x: 8, y: 13, targetRoom: 'main-deck', spawnX: 8, spawnY: 1 },
     ],
-    triggers: [],
+    triggers: [
+      // Motorboat (non-ritual) on the left half. Walkable, away from the
+      // door (8,13) and the default spawn (8,7). Return spawn lands at (4,3).
+      { x: 4,  y: 4, levelId: 'motorboat' },
+      // Mermaid-shower (ritual step 3) on the right half. Same constraints.
+      // Return spawn lands at (12,3). Mirrors the galley two-triggers pattern.
+      { x: 12, y: 4, levelId: 'mermaid-shower' },
+    ],
     playerSpawn: { x: 8, y: 7 },
   },
 };

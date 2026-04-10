@@ -63,5 +63,33 @@ export const LEVELS = {
     act: 2,
     config: {},
   },
-  // More entries added in Sessions 6–7
+  // Act 3 — rapid-tap survival against a fast-draining vertical PowerMeter.
+  // SPACE adds +tapPower, alternating Q/W or mobile L/R adds +8, same key
+  // twice in a row adds only +4, mobile center button adds +6. First reuse
+  // of PowerMeter in vertical orientation. Not a ritual step.
+  'motorboat': {
+    id: 'motorboat',
+    sceneKey: 'MotorboatGame',
+    instruction: 'BLOW!',
+    location: 'Open Sea',
+    isRitual: false,
+    act: 3,
+    config: { durationMs: 20000, decayPerSec: 50, tapPower: 12, alternateBonus: 4 },
+  },
+  // Act 3 — Ritual Step 3. Temperature-slider minigame. LEFT/RIGHT (or the
+  // on-screen L/R buttons) nudge the temperature; random mermaid splashes
+  // nudge it back. Win by accumulating targetSecondsInZone seconds in the
+  // green band within totalDurationMs. Sequence guard blocks this if
+  // dinner-service (step 2) hasn't been completed.
+  'mermaid-shower': {
+    id: 'mermaid-shower',
+    sceneKey: 'MermaidShower',
+    instruction: 'WASH!',
+    location: 'Mermaid Grotto',
+    isRitual: true,
+    ritualStep: 3,
+    act: 3,
+    config: { greenZone: [35, 65], targetSecondsInZone: 10, totalDurationMs: 25000, splashIntervalMs: 1200 },
+  },
+  // More entries added in Session 7
 };

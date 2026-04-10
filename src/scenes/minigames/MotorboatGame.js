@@ -1,0 +1,223 @@
+// MotorboatGame — Act 3, non-ritual. Cody shoves his face into the boat
+// dashboard and blows. Player rapid-taps to keep a vertical PowerMeter
+// above empty for 20 seconds. First scene in the project to use the
+// PowerMeter in vertical orientation.
+//
+// Tap inputs (all read the same config: tapPower=12, alternateBonus=4):
+//   - SPACE           → +tapPower (12). Does NOT touch lastAltKey.
+//   - Q / W           → alternating +8, same-twice +4. Updates lastAltKey.
+//   - Mobile L / R    → mirrors Q/W. Updates lastAltKey.
+//   - Mobile Center   → literal +6. Does NOT touch lastAltKey.
+//
+// Lose path uses a `stalled` flag: when the meter hits 0 we suspend motion
+// and schedule a 1s delayed `this.lose()`. That lets the visual "stall"
+// (dim overlay, frozen mermaids, paused wake timer) actually play before
+// BaseMinigame's LOSE overlay fires and the scene returns to the bridge.
+
+import Phaser from 'phaser';
+import { BaseMinigame } from './BaseMinigame.js';
+import { PowerMeter } from '../../ui/PowerMeter.js';
+
+export default class MotorboatGame extends BaseMinigame {
+  constructor() {
+    super('MotorboatGame');
+  }
+
+  setupGame() {
+    const cfg = (this.levelConfig && this.levelConfig.config) || {};
+    this.durationMs = cfg.durationMs || 20000;
+    this.decayPerSec = cfg.decayPerSec || 50;
+    this.tapPower = cfg.tapPower || 12;
+    this.alternateBonus = cfg.alternateBonus || 4;
+    this.altPower = this.tapPower - this.alternateBonus;          // 8
+    this.samePower = this.tapPower - 2 * this.alternateBonus;     // 4
+    this.centerPower = 6;                                          // literal per spec
+
+    this.timeLeft = this.durationMs;
+    this.lastAltKey = null;
+    this.stalled = false;
+    this.touchL = false;
+    this.touchR = false;
+
+    // Background — sky (top half) + sea (bottom half).
+    this.add.rectangle(128, 56, 256, 112, 0x4080ff);
+    this.add.rectangle(128, 168, 256, 112, 0x204080);
+
+    // Dashboard Cody's face is pressed against.
+    this.add.rectangle(128, 140, 200, 16, 0x886844).setStrokeStyle(1, 0xffffff);
+
+    // Cody — green 16x16, pressed into the dashboard from behind.
+    this.cody = this.add.rectangle(128, 128, 16, 16, 0x40c040);
+
+    // Two pink mermaids on the dashboard. baseY anchors the sine bounce.
+    this.mermaidLeft = this.add.rectangle(96, 128, 12, 16, 0xff69b4);
+    this.mermaidLeft.baseY = 128;
+    this.mermaidRight = this.add.rectangle(160, 128, 12, 16, 0xff69b4);
+    this.mermaidRight.baseY = 128;
+
+    // Vertical PowerMeter on the right. Starts at 60 so the player has a
+    // moment to read the scene before the decay starts biting. x=228 (not
+    // 236) so the 25px-wide "POWER" label fits inside the 256px canvas —
+    // PowerMeter positions its label at (x, y-10) with origin (0,0).
+    this.powerMeter = new PowerMeter(this, 228, 60, 12, 120, {
+      max: 100,
+      initial: 60,
+      decayPerSec: this.decayPerSec,
+      orientation: 'vertical',
+      label: 'POWER',
+    });
+
+    // Instruction label.
+    this.add.text(8, 16, 'TAP/ALTERNATE!', {
+      font: '8px monospace',
+      color: '#aaaaaa',
+    }).setDepth(100);
+
+    // Countdown text (top-right, clear of the POWER label at ~y=50).
+    this.timerText = this.add.text(220, 16, Math.ceil(this.durationMs / 1000).toString(), {
+      font: '12px monospace',
+      color: '#ffff80',
+    }).setOrigin(1, 0).setDepth(100);
+
+    // Wake spray — one looping timer whose delay is re-assigned every
+    // frame based on power. Tweened circles, not ParticleEmitter.
+    this.wakeTimer = this.time.addEvent({
+      delay: 400,
+      loop: true,
+      callback: this.emitWake,
+      callbackScope: this,
+    });
+
+    // Desktop input.
+    this.input.keyboard.on('keydown-SPACE', () => this.spaceTap());
+    this.input.keyboard.on('keydown-Q', () => this.altKeyTap('Q'));
+    this.input.keyboard.on('keydown-W', () => this.altKeyTap('W'));
+
+    // Mobile buttons. pointerdown-only (edge trigger) — we want rapid
+    // tapping, not held-button behavior.
+    this.createTouchButtons();
+
+    // Cleanup on scene shutdown (scene.start on return fires shutdown).
+    this.events.once('shutdown', this.shutdownGame, this);
+  }
+
+  createTouchButtons() {
+    const defs = [
+      { x: 30,  label: 'L',   onTap: () => this.altKeyTap('L') },
+      { x: 128, label: 'TAP', onTap: () => this.centerTap() },
+      { x: 226, label: 'R',   onTap: () => this.altKeyTap('R') },
+    ];
+    defs.forEach(def => {
+      const bg = this.add.rectangle(def.x, 200, 36, 30, 0xffffff, 0.3);
+      bg.setStrokeStyle(1, 0xffffff, 0.8);
+      bg.setDepth(100);
+      bg.setInteractive({ useHandCursor: true });
+      bg.on('pointerdown', def.onTap);
+      this.add.text(def.x, 200, def.label, {
+        font: '12px monospace',
+        color: '#ffffff',
+      }).setOrigin(0.5).setDepth(101);
+    });
+  }
+
+  spaceTap() {
+    if (this.state !== 'PLAY') return;
+    if (this.stalled) return;
+    this.powerMeter.add(this.tapPower);
+    // SPACE is a "bonus path" — do NOT touch lastAltKey so it doesn't
+    // break an in-progress Q/W alternation streak.
+  }
+
+  altKeyTap(key) {
+    if (this.state !== 'PLAY') return;
+    if (this.stalled) return;
+    const power = (this.lastAltKey === key) ? this.samePower : this.altPower;
+    this.powerMeter.add(power);
+    this.lastAltKey = key;
+  }
+
+  centerTap() {
+    if (this.state !== 'PLAY') return;
+    if (this.stalled) return;
+    this.powerMeter.add(this.centerPower);
+    // Same reasoning as spaceTap — don't touch lastAltKey.
+  }
+
+  emitWake() {
+    if (this.state !== 'PLAY') return;
+    if (this.stalled) return;
+    // Behind the boat (left of Cody at x=128, offset randomly), at roughly
+    // the dashboard level. Small, white, drifts left and fades.
+    const spawnX = 96 + Phaser.Math.Between(-4, 4);
+    const spawnY = 150 + Phaser.Math.Between(-3, 3);
+    const size = Phaser.Math.Between(1, 3);
+    const wake = this.add.circle(spawnX, spawnY, size, 0xffffff).setDepth(5);
+    this.tweens.add({
+      targets: wake,
+      x: spawnX - 30,
+      alpha: 0,
+      duration: 400,
+      onComplete: () => {
+        if (wake && wake.active) wake.destroy();
+      },
+    });
+  }
+
+  shutdownGame() {
+    if (this.wakeTimer) {
+      this.wakeTimer.remove(false);
+      this.wakeTimer = null;
+    }
+    if (this.powerMeter) {
+      this.powerMeter.destroy();
+      this.powerMeter = null;
+    }
+  }
+
+  update(time, delta) {
+    if (this.state !== 'PLAY') return;
+    if (!this.powerMeter) return;
+
+    this.powerMeter.decay(delta);
+
+    // Countdown.
+    this.timeLeft -= delta;
+    if (this.timerText && this.timerText.active) {
+      this.timerText.setText(Math.max(0, Math.ceil(this.timeLeft / 1000)).toString());
+    }
+
+    // Mermaid bounce — frequency and amplitude scale with power. Use
+    // abs(sin) so they only bounce upward and never clip into the dashboard.
+    const powerRatio = this.powerMeter.value / 100;  // 0..1
+    if (!this.stalled) {
+      const bounceFreq = 1 + powerRatio * 4;   // 1..5 Hz
+      const bounceAmp = 1 + powerRatio * 3;    // 1..4 px
+      const phase = (time / 1000) * bounceFreq * Math.PI * 2;
+      this.mermaidLeft.y = this.mermaidLeft.baseY - Math.abs(Math.sin(phase)) * bounceAmp;
+      this.mermaidRight.y = this.mermaidRight.baseY - Math.abs(Math.sin(phase + Math.PI / 2)) * bounceAmp;
+    }
+
+    // Wake spawn rate: dense spray at high power, nearly none at low.
+    if (this.wakeTimer) {
+      this.wakeTimer.delay = 400 - powerRatio * 360;  // 40..400 ms
+    }
+
+    // Loss path — meter empty. Start the stall effect and wait 1s before
+    // actually losing so the stall animation plays.
+    if (this.powerMeter.value <= 0 && !this.stalled) {
+      this.stalled = true;
+      this.add.rectangle(128, 112, 256, 224, 0x000000, 0.4).setDepth(500);
+      if (this.wakeTimer) this.wakeTimer.paused = true;
+      this.time.delayedCall(1000, () => {
+        if (this.state === 'PLAY') this.lose();
+      });
+      return;
+    }
+
+    // Win path — survived the full duration.
+    if (this.timeLeft <= 0 && !this.stalled) {
+      this.win();
+      return;
+    }
+  }
+}
