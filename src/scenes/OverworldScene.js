@@ -6,6 +6,10 @@ import Phaser from 'phaser';
 import { TILE_SIZE, COLORS, TILE_TYPES } from '../constants.js';
 import { ROOMS } from '../data/rooms.js';
 import { Player } from '../objects/Player.js';
+import { Cody } from '../objects/Cody.js';
+import { DIALOGS } from '../data/dialogs.js';
+import { LEVELS } from '../data/levels.js';
+import { EventBus } from '../systems/EventBus.js';
 
 export default class OverworldScene extends Phaser.Scene {
   constructor() {
@@ -19,6 +23,8 @@ export default class OverworldScene extends Phaser.Scene {
     this.spawnOverrideX = data && data.spawnX;
     this.spawnOverrideY = data && data.spawnY;
     this.isTransitioning = false;
+    this.dialogActive = false;
+    this.npcs = [];
   }
 
   create() {
@@ -41,13 +47,31 @@ export default class OverworldScene extends Phaser.Scene {
     // 4. On-screen touch buttons (mobile-first). Always visible — desktop
     //    users can also click them with a mouse.
     this.createTouchButtons();
+    this.createTalkButton();
 
-    // 5. Camera fade-in so room transitions feel intentional.
+    // 5. NPCs. Currently only Cody on the Main Deck.
+    if (this.roomId === 'main-deck') {
+      this.npcs.push(new Cody(this, 8, 6, 'cody-intro'));
+    }
+
+    // 6. Interact keys: Z and Enter both trigger talk.
+    this.input.keyboard.on('keydown-Z', () => this.tryInteract());
+    this.input.keyboard.on('keydown-ENTER', () => this.tryInteract());
+
+    // 7. Launch the HUD as a parallel scene if it isn't already running.
+    //    The guard is required because OverworldScene restarts on every
+    //    door traversal, which would otherwise stack HUDScene instances.
+    if (!this.scene.isActive('HUDScene')) {
+      this.scene.launch('HUDScene');
+    }
+
+    // 8. Camera fade-in so room transitions feel intentional.
     this.cameras.main.fadeIn(300, 0, 0, 0);
   }
 
   update() {
     if (this.isTransitioning) return;
+    if (this.dialogActive) return;
     if (this.player.isMoving) return;
 
     // If we just finished tweening onto a door tile, trigger the
@@ -126,7 +150,58 @@ export default class OverworldScene extends Phaser.Scene {
   // update(), once the tween has actually arrived at the destination tile.
   handleMove(dir) {
     if (this.isTransitioning) return;
+    if (this.dialogActive) return;
     this.player.tryMove(dir, (x, y) => this.canEnter(x, y));
+  }
+
+  // Add a TALK button next to the d-pad. Same visual style as the
+  // direction buttons. Slightly wider to fit the label.
+  createTalkButton() {
+    const x = 90;
+    const y = 190;
+    const bg = this.add.rectangle(x, y, 36, 20, 0xffffff, 0.3);
+    bg.setStrokeStyle(1, 0xffffff, 0.8);
+    bg.setDepth(100);
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerdown', () => this.tryInteract());
+
+    const label = this.add.text(x, y, 'TALK', {
+      font: '8px monospace',
+      color: '#ffffff',
+    });
+    label.setOrigin(0.5);
+    label.setDepth(101);
+  }
+
+  // Look for any NPC adjacent to the player. If found, launch DialogScene
+  // and stage the once-fire 'dialog-complete' subscription.
+  tryInteract() {
+    if (this.dialogActive || this.isTransitioning || this.player.isMoving) return;
+    const npc = this.npcs.find(n => n.isAdjacentTo(this.player.tileX, this.player.tileY));
+    if (!npc) return;
+    const dialog = DIALOGS[npc.dialogId];
+    if (!dialog) return;
+
+    this.dialogActive = true;
+    EventBus.once('dialog-complete', () => this.onDialogComplete(npc));
+    this.scene.launch('DialogScene', { lines: dialog.lines });
+  }
+
+  // Called once after the player closes the Cody dialog. For Session 3 we
+  // always hand off to the placeholder minigame; later sessions branch on
+  // npc.dialogId or current ritual progress.
+  onDialogComplete(_npc) {
+    this.dialogActive = false;
+    this.scene.start('TransitionScene', {
+      instruction: 'TEST!',
+      location: 'Test Room',
+      nextSceneKey: 'PlaceholderGame',
+      nextSceneData: {
+        levelConfig: LEVELS.placeholder,
+        returnSceneKey: 'OverworldScene',
+        returnSceneData: { roomId: 'main-deck', spawnX: 8, spawnY: 7 },
+      },
+    });
   }
 
   // Walls block. Out-of-bounds blocks. Floor and door tiles are walkable.

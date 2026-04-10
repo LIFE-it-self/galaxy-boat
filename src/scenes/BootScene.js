@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GameStateManager } from '../systems/GameStateManager.js';
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -25,6 +26,9 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
+    // Seed the registry with default game state before any other scene runs.
+    GameStateManager.init(this.game);
+
     this.time.delayedCall(500, () => {
       this.scene.start('MainMenuScene');
     });
