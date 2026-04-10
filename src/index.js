@@ -10,6 +10,8 @@ import CokeDrinkGame from './scenes/minigames/CokeDrinkGame.js';
 import PipeSmoke from './scenes/minigames/PipeSmoke.js';
 import ScubaDiveGame from './scenes/minigames/ScubaDiveGame.js';
 import DinnerService from './scenes/minigames/DinnerService.js';
+import MotorboatGame from './scenes/minigames/MotorboatGame.js';
+import MermaidShower from './scenes/minigames/MermaidShower.js';
 import './systems/FailHandler.js'; // side-effect: registers global hurricane-fail logger
 
 const config = {
@@ -59,6 +61,8 @@ const config = {
     PipeSmoke,
     ScubaDiveGame,
     DinnerService,
+    MotorboatGame,
+    MermaidShower,
     HUDScene,
   ],
 };
