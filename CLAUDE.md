@@ -23,7 +23,9 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 ## Architecture
 - All minigames extend `src/scenes/minigames/BaseMinigame.js`. **Never modify `BaseMinigame.js` from inside a minigame file** — it is the contract. Subclasses override `setupGame()` and call `this.win()` / `this.lose()`.
 - Add new minigames as one new scene file plus one entry in `src/data/levels.js`
-- Rooms are JS arrays in `src/data/rooms.js`. Each room has a layout (2D array), doors (with target room + spawn coords), and a default playerSpawn. Add new rooms by adding entries here, no other code changes needed for the room data itself.
+- Rooms are JS arrays in `src/data/rooms.js`. Each room has a layout (2D array), doors (with target room + spawn coords), an optional `triggers` array (tile-based minigame launch points), and a default playerSpawn. Add new rooms by adding entries here, no other code changes needed for the room data itself.
+- Trigger zones live in `rooms.js` as a `triggers` array on each room (`{ x, y, levelId }`). `OverworldScene` checks for trigger overlap after every move and calls `startMinigameForLevel`. Sequence-guarded levels run `SequenceGuard.assertCanStartRitual` before launching the TransitionScene.
+- Once a minigame is in `completedMinigames`, its trigger is dormant — no `!` marker, the player walks right over it. To re-test a minigame, manually clear it from the registry via the dev console.
 - Game state lives on Phaser's `game.registry` via `src/systems/GameStateManager.js`. Always write through `set()` (not in-place mutation) so `changedata-*` events fire for HUD subscribers.
 - Failure threshold lives in `src/systems/GameStateManager.js` as `FAILURE_THRESHOLD` (currently 5).
 - Cross-scene events go through `src/systems/EventBus.js` (a shared Phaser `EventEmitter` singleton). Notable events: `'dialog-complete'`, `'hurricane-fail'`, `'victory'`.
@@ -32,6 +34,12 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 - Dialog is a parallel scene (`DialogScene`), launched (not started). Overworld uses a `dialogActive` flag rather than `scene.pause()` to gate input while dialog is open.
 - Scene render order is the order of the `scene:` array in `src/index.js`. `HUDScene` MUST stay LAST so it draws on top of every gameplay scene.
 - Hurricane fail is currently a placeholder banner inside `HUDScene` (red text + 2s delay + bounce to MainMenuScene). Real cutscene comes in Session 7.
+
+## Reusable UI Components
+Plain JS classes (not Phaser scenes) that wrap a few `scene.add.*` objects. Constructed inside a minigame's `setupGame()` and destroyed automatically when the scene shuts down.
+
+- `src/ui/RhythmBar.js` — note-and-hit-zone rhythm tap UI. Notes spawn from the right and travel toward a green hit zone on the left; `hit()` returns true if the nearest pending note is inside ±150ms. Used by `CokeDrinkGame`; will be reused by `LullabyGame`.
+- `src/ui/PowerMeter.js` — fillable bar with decay. `add(delta)` bumps the value, `decay(deltaMs)` drains it (call from `update(time, delta)`), `value` is a plain property (not a getter — would conflict with internal assignments). Used by `PipeSmoke`; will be reused by `MotorboatGame`.
 
 ## Key patterns
 - Minigame lifecycle: TITLE_CARD → INSTRUCTION → PLAY → EVALUATE → WIN/LOSE (handled by BaseMinigame)
@@ -72,7 +80,7 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 - Do NOT mark a task complete if anything is broken — keep it in_progress and ask the user
 
 ## Current phase
-Session 3 complete. Dialog system, HUD, BaseMinigame, GameStateManager, SequenceGuard, EventBus, PlaceholderGame all wired. Full overworld → dialog → minigame → result loop works. Hurricane fail is placeholder text. Next: Session 4 — Act 1 real content (CokeDrink werewolf rhythm + Pipe Smoke ritual).
+Session 4 complete. Act 1 playable: `CokeDrinkGame` (werewolf rhythm, 6 of 8 hits to win) and `PipeSmoke` (ritual step 1, 5 puffs vs draining meter) work end-to-end with placeholder visuals. `RhythmBar` and `PowerMeter` UI components ready for reuse. Tile-based trigger zones replaced the old "talk-to-Cody-launches-minigame" hardcode — dialog is now pure narrative, and Cody swaps to a hint dialog after the first conversation. Next: Session 5 — Act 2 (ScubaDive K-fish + Dinner Service ritual step 2).
 
 ## Sprite/asset placeholder conventions (Sessions 1–7)
 - Player (Captain) = blue 16×16 rectangle
