@@ -68,7 +68,7 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 - Do NOT mark a task complete if anything is broken — keep it in_progress and ask the user
 
 ## Current phase
-[Updated at the end of every session. Initial value: "Session 1 complete. Project scaffolded, deployed to GitHub Pages. Next: Session 2 — overworld + rooms."]
+Session 1 complete. Phaser 3 + Vite project scaffolded. Boot and MainMenu scenes work. Deployed to https://LIFE-it-self.github.io/galaxy-boat/. Next: Session 2 — overworld with 4 boat rooms and player movement.
 
 ## Sprite/asset placeholder conventions (Sessions 1–7)
 - Player (Captain) = blue 16×16 rectangle
