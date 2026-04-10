@@ -1,0 +1,36 @@
+{
+  "name": "galaxy-boat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LIFE-it-self/galaxy-boat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/LIFE-it-self/galaxy-boat/issues"
+  },
+  "homepage": "https://github.com/LIFE-it-self/galaxy-boat#readme",
+  "dependencies": {
+    "phaser": "~3.80.0"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0",
+    "vite": "^8.0.8"
+  }
+}
