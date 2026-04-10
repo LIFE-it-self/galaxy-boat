@@ -39,5 +39,29 @@ export const LEVELS = {
     act: 1,
     config: { puffsRequired: 5, puffPower: 30, decayPerSec: 25 },
   },
-  // More entries added in Sessions 5–7
+  // Act 2 — top-down underwater K-fish collection. Not a ritual step; the
+  // mermaid hints "the K-fish first" but DinnerService is the only enforced
+  // ritual gate in the galley. First minigame to use Arcade Physics.
+  'scuba-dive': {
+    id: 'scuba-dive',
+    sceneKey: 'ScubaDiveGame',
+    instruction: 'DIVE!',
+    location: 'Galley Hatch',
+    isRitual: false,
+    act: 2,
+    config: { targetFish: 10, lives: 3, durationMs: 30000, fishSpawnIntervalMs: 600 },
+  },
+  // Act 2 — Ritual Step 2. Three Michelin-vs-mundane menu picks. Sequence
+  // guard blocks this if pipe-smoke (step 1) hasn't been completed.
+  'dinner-service': {
+    id: 'dinner-service',
+    sceneKey: 'DinnerService',
+    instruction: 'EAT!',
+    location: 'Galley',
+    isRitual: true,
+    ritualStep: 2,
+    act: 2,
+    config: {},
+  },
+  // More entries added in Sessions 6–7
 };

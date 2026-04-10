@@ -132,7 +132,15 @@ export const ROOMS = {
     doors: [
       { x: 0, y: 7, targetRoom: 'bar', spawnX: 14, spawnY: 7 },
     ],
-    triggers: [],
+    triggers: [
+      // Scuba-dive (non-ritual) on the left half. Walkable, away from the
+      // door (0,7), the default spawn (8,7), and the mermaid at (8,10).
+      // Return spawn lands the player at (4,3).
+      { x: 4,  y: 4, levelId: 'scuba-dive' },
+      // Dinner-service (ritual step 2) on the right half. Same constraints.
+      // Return spawn lands the player at (12,3).
+      { x: 12, y: 4, levelId: 'dinner-service' },
+    ],
     playerSpawn: { x: 8, y: 7 },
   },
 
