@@ -23,5 +23,15 @@ export const DIALOGS = {
       'You will know when it is time.',
     ],
   },
+  // Galley mermaid — hints at the order of operations in the galley:
+  // confirm pipe is done, push toward dinner, but mention K-fish first.
+  'galley-mermaid': {
+    speaker: 'Galley Mermaid',
+    lines: [
+      'You smell like smoke. Good.',
+      'Now eat. The dinner is ready.',
+      'But first, the K-fish. Cody needs the K-fish.',
+    ],
+  },
   // More dialogs added later
 };

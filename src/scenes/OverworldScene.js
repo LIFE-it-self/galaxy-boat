@@ -7,6 +7,7 @@ import { TILE_SIZE, COLORS, TILE_TYPES } from '../constants.js';
 import { ROOMS } from '../data/rooms.js';
 import { Player } from '../objects/Player.js';
 import { Cody } from '../objects/Cody.js';
+import { Mermaid } from '../objects/Mermaid.js';
 import { DIALOGS } from '../data/dialogs.js';
 import { LEVELS } from '../data/levels.js';
 import { EventBus } from '../systems/EventBus.js';
@@ -56,9 +57,11 @@ export default class OverworldScene extends Phaser.Scene {
     this.createTouchButtons();
     this.createTalkButton();
 
-    // 5. NPCs. Currently only Cody on the Main Deck.
+    // 5. NPCs. Cody on the Main Deck, Galley Mermaid in the Galley.
     if (this.roomId === 'main-deck') {
       this.npcs.push(new Cody(this, 8, 6, 'cody-intro'));
+    } else if (this.roomId === 'galley') {
+      this.npcs.push(new Mermaid(this, 8, 10, 'galley-mermaid'));
     }
 
     // 6. Interact keys: Z and Enter both trigger talk.

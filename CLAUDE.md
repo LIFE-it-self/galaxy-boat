@@ -34,6 +34,9 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 - Dialog is a parallel scene (`DialogScene`), launched (not started). Overworld uses a `dialogActive` flag rather than `scene.pause()` to gate input while dialog is open.
 - Scene render order is the order of the `scene:` array in `src/index.js`. `HUDScene` MUST stay LAST so it draws on top of every gameplay scene.
 - Hurricane fail is currently a placeholder banner inside `HUDScene` (red text + 2s delay + bounce to MainMenuScene). Real cutscene comes in Session 7.
+- Arcade Physics is enabled globally in `src/index.js` (`physics: { default: 'arcade', arcade: { gravity: { y: 0 } } }`). Only `ScubaDiveGame` currently uses physics (player circle + K-fish containers + overlap callbacks). Other scenes ignore physics at near-zero cost.
+- Sequence guard (`SequenceGuard.assertCanStartRitual`) fires an immediate `'hurricane-fail'` when a ritual step is attempted out of order. Verified in Session 5: walking straight to the Dinner (step 2) trigger from a fresh game, with no Pipe (step 1) completion, triggers the placeholder hurricane banner.
+- `src/index.js` sets `render.preserveDrawingBuffer: true` and `fps.forceSetTimeOut: true` so headless preview screenshots capture live WebGL state and Phaser's clock keeps advancing when the tab isn't focused. `window.__game` is exposed as a dev hook for inspection from the preview eval tool. All three are no-ops for normal play.
 
 ## Reusable UI Components
 Plain JS classes (not Phaser scenes) that wrap a few `scene.add.*` objects. Constructed inside a minigame's `setupGame()` and destroyed automatically when the scene shuts down.
@@ -80,7 +83,7 @@ Plain JS classes (not Phaser scenes) that wrap a few `scene.add.*` objects. Cons
 - Do NOT mark a task complete if anything is broken — keep it in_progress and ask the user
 
 ## Current phase
-Session 4 complete. Act 1 playable: `CokeDrinkGame` (werewolf rhythm, 6 of 8 hits to win) and `PipeSmoke` (ritual step 1, 5 puffs vs draining meter) work end-to-end with placeholder visuals. `RhythmBar` and `PowerMeter` UI components ready for reuse. Tile-based trigger zones replaced the old "talk-to-Cody-launches-minigame" hardcode — dialog is now pure narrative, and Cody swaps to a hint dialog after the first conversation. Next: Session 5 — Act 2 (ScubaDive K-fish + Dinner Service ritual step 2).
+Session 5 complete. Act 2 playable: `ScubaDiveGame` (top-down K-fish collection, 10 gold for win, red fish cost a life, 30s timer, Arcade Physics) and `DinnerService` (ritual step 2, 3 Michelin-vs-mundane courses, all correct = win). Galley now has two triggers and a pink-rectangle Galley Mermaid NPC with a 3-line hint dialog. Sequence guard verified: walking to the Dinner trigger from a fresh game triggers the hurricane banner because Pipe is not done. `ritualProgress` can now reach `[1, 2]`. Next: Session 6 — Act 3 (Motorboat + Mermaid Shower).
 
 ## Sprite/asset placeholder conventions (Sessions 1–7)
 - Player (Captain) = blue 16×16 rectangle
