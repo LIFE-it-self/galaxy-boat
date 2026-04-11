@@ -1,15 +1,16 @@
 // HUDScene — parallel scene that draws the failure counter and current
 // objective on top of whatever gameplay scene is running. Launched once
 // from OverworldScene.create() (guarded by isActive) and persists across
-// every room transition / minigame swap until a hurricane fail bounces
-// the player back to MainMenuScene.
+// every room transition / minigame swap.
 //
-// HUDScene also owns the temporary "HURRICANE!" placeholder UI that fires
-// when failureCount hits FAILURE_THRESHOLD. Real fail cutscene = Session 7.
+// As of Session 7 HUDScene is display-only: it no longer listens for
+// 'hurricane-fail'. The CutsceneRouter module (src/systems/CutsceneRouter.js)
+// handles the event and starts CutsceneScene, which itself stops every
+// other active scene (including this one) before rendering the fail or
+// victory cutscene.
 
 import Phaser from 'phaser';
-import { EventBus } from '../systems/EventBus.js';
-import { FAILURE_THRESHOLD, GameStateManager } from '../systems/GameStateManager.js';
+import { FAILURE_THRESHOLD } from '../systems/GameStateManager.js';
 
 export default class HUDScene extends Phaser.Scene {
   constructor() {
@@ -36,53 +37,12 @@ export default class HUDScene extends Phaser.Scene {
     };
     this.registry.events.on('changedata-failureCount', this.onFailureChanged, this);
 
-    // Subscribe to the global hurricane fail event.
-    this.onHurricane = this.onHurricane.bind(this);
-    EventBus.on('hurricane-fail', this.onHurricane);
-
     this.events.once('shutdown', this.shutdown, this);
-  }
-
-  // Show the placeholder hurricane UI for 2 seconds, then reset state and
-  // bounce back to MainMenuScene. The 2s delay is intentionally longer
-  // than BaseMinigame's 1.2s result overlay so we override whatever
-  // scene.start() the minigame's lose() path called.
-  onHurricane(_data) {
-    if (this.hurricaneActive) return;
-    this.hurricaneActive = true;
-
-    const banner = this.add.text(128, 112, 'HURRICANE! (placeholder)', {
-      font: '16px monospace',
-      color: '#ff4040',
-    }).setOrigin(0.5).setDepth(1100);
-
-    this.time.delayedCall(2000, () => {
-      banner.destroy();
-      GameStateManager.reset(this.game);
-
-      // Stop every active scene that isn't us or the menu, so the menu
-      // re-enters cleanly.
-      const scenes = this.scene.manager.scenes;
-      scenes.forEach((s) => {
-        const key = s.scene.key;
-        if (key === 'HUDScene' || key === 'MainMenuScene') return;
-        if (this.scene.isActive(key) || this.scene.isPaused(key)) {
-          this.scene.stop(key);
-        }
-      });
-
-      this.scene.start('MainMenuScene');
-      this.scene.stop('HUDScene');
-    });
   }
 
   shutdown() {
     if (this.onFailureChanged) {
       this.registry.events.off('changedata-failureCount', this.onFailureChanged, this);
     }
-    if (this.onHurricane) {
-      EventBus.off('hurricane-fail', this.onHurricane);
-    }
-    this.hurricaneActive = false;
   }
 }

@@ -91,5 +91,32 @@ export const LEVELS = {
     act: 3,
     config: { greenZone: [35, 65], targetSecondsInZone: 10, totalDurationMs: 25000, splashIntervalMs: 1200 },
   },
-  // More entries added in Session 7
+  // Act 4 — non-ritual lullaby rhythm. Reuses RhythmBar like CokeDrinkGame.
+  // RhythmBar's NOTE_TRAVEL_MS is hard-coded at module scope, so we don't
+  // pass noteTravelMs here — only beats, required hits, and note spacing.
+  'lullaby': {
+    id: 'lullaby',
+    sceneKey: 'LullabyGame',
+    instruction: 'SING!',
+    location: 'Cabin Corridor',
+    isRitual: false,
+    act: 4,
+    config: { beats: 8, requiredHits: 6, noteSpacingMs: 800 },
+  },
+  // Act 4 — Ritual Step 4 (final). Shush incoming noises to keep Cody
+  // asleep. Each missed shush drops Cody's sleep meter by wakeOnMiss; if
+  // it reaches 0 before the timer runs out, lose. Survive to the end to
+  // win, which pushes ritualProgress to [1,2,3,4] and fires 'victory'
+  // (GameStateManager.markRitualStep:60) — CutsceneRouter catches it.
+  // Sequence guard blocks this if mermaid-shower (step 3) is incomplete.
+  'mermaid-nap': {
+    id: 'mermaid-nap',
+    sceneKey: 'MermaidNap',
+    instruction: 'SHUSH!',
+    location: 'Cabin',
+    isRitual: true,
+    ritualStep: 4,
+    act: 4,
+    config: { numNoises: 4, totalDurationMs: 20000, shushWindowMs: 2000, wakeOnMiss: 25 },
+  },
 };
