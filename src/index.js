@@ -12,6 +12,10 @@ import ScubaDiveGame from './scenes/minigames/ScubaDiveGame.js';
 import DinnerService from './scenes/minigames/DinnerService.js';
 import MotorboatGame from './scenes/minigames/MotorboatGame.js';
 import MermaidShower from './scenes/minigames/MermaidShower.js';
+import LullabyGame from './scenes/minigames/LullabyGame.js';
+import MermaidNap from './scenes/minigames/MermaidNap.js';
+import CutsceneScene from './scenes/CutsceneScene.js';
+import { registerCutsceneRouter } from './systems/CutsceneRouter.js';
 import './systems/FailHandler.js'; // side-effect: registers global hurricane-fail logger
 
 const config = {
@@ -63,11 +67,20 @@ const config = {
     DinnerService,
     MotorboatGame,
     MermaidShower,
-    HUDScene,
+    LullabyGame,
+    MermaidNap,
+    CutsceneScene,
+    HUDScene, // MUST stay last — renders on top of every gameplay scene
   ],
 };
 
 const __game = new Phaser.Game(config);
+
+// Register the cutscene router once, AFTER the Phaser.Game exists so it
+// can drive scene.start/stop via the live scene manager. Listeners are
+// module-scoped and persist across scene restarts (FailHandler pattern).
+registerCutsceneRouter(__game);
+
 // Debug hook — lets Vite dev tools / preview inspection reach the Phaser
 // game instance. Safe in dev; harmless in prod (the symbol just exists).
 if (typeof window !== 'undefined') window.__game = __game;
