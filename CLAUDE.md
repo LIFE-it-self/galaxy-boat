@@ -33,12 +33,15 @@ This is an inside joke for the developer's friend group. It is not a commercial 
 - HUD is a parallel scene (`HUDScene`), launched (not started) from `OverworldScene` and guarded by `scene.isActive` so it persists across `scene.restart()` (door transitions).
 - Dialog is a parallel scene (`DialogScene`), launched (not started). Overworld uses a `dialogActive` flag rather than `scene.pause()` to gate input while dialog is open.
 - Scene render order is the order of the `scene:` array in `src/index.js`. `HUDScene` MUST stay LAST so it draws on top of every gameplay scene.
-- `CutsceneScene` (`src/scenes/CutsceneScene.js`) is a data-driven scene with two modes: `'fail'` (screen shake → Cody spin → hurricane → Aquaman throne → RETRY button) and `'victory'` (fade-in beach + scrolling credits). Both modes end in `returnToMenu()`, which calls `GameStateManager.reset(game)` to zero the registry (`failureCount`, `ritualProgress`, `completedMinigames`, `talkedToCody`) and bounces back to `MainMenuScene`. Tracks all `delayedCall` handles in `this.timers` and removes them in `shutdown()` so early `returnToMenu()` (RETRY clicked before Aquaman shows) doesn't leak callbacks. All cutscene art is Phaser graphics primitives — no PNG preloads until Session 8.
+- `CutsceneScene` (`src/scenes/CutsceneScene.js`) is a data-driven scene with two modes: `'fail'` (screen shake → Cody spin → hurricane → Aquaman throne → RETRY button) and `'victory'` (fade-in beach + scrolling credits). Both modes end in `returnToMenu()`, which calls `stopMusic()` then `GameStateManager.reset(game)` to zero the registry and bounces back to `MainMenuScene`. Tracks all `delayedCall` handles in `this.timers` and removes them in `shutdown()` so early `returnToMenu()` doesn't leak callbacks. Fail mode plays `bgm-fail` + `sfx-hurricane`; victory mode plays `bgm-victory`. Both modes use real sprites/images when loaded (cutscene-hurricane, cutscene-aquaman, cody) with Phaser graphics fallbacks.
 - `CutsceneRouter` (`src/systems/CutsceneRouter.js`) owns the module-scoped global listeners for `'hurricane-fail'` and `'victory'`. Registered ONCE from `src/index.js` after `new Phaser.Game()` via `registerCutsceneRouter(__game)`. On either event, it stops every active/paused scene except `CutsceneScene` and starts `CutsceneScene` with the appropriate `mode`. The handoff is deferred by a `Promise.resolve().then(...)` microtask so scene state isn't mutated inside a Phaser event callback (the synchronous path from `BaseMinigame.win() → markRitualStep() → EventBus.emit()` historically caused "Cannot read property 'sys' of undefined" crashes). Uses `routerRegistered` + `routing` flags to survive Vite HMR and same-frame double-emits.
 - `HUDScene` is display-only as of Session 7 — it subscribes to `changedata-failureCount` to update the counter and nothing else. The Session 3 placeholder hurricane banner was removed; `CutsceneRouter` + `CutsceneScene` handle the fail flow end-to-end.
 - Arcade Physics is enabled globally in `src/index.js` (`physics: { default: 'arcade', arcade: { gravity: { y: 0 } } }`). Only `ScubaDiveGame` currently uses physics (player circle + K-fish containers + overlap callbacks). Other scenes ignore physics at near-zero cost.
 - Sequence guard (`SequenceGuard.assertCanStartRitual`) fires an immediate `'hurricane-fail'` when a ritual step is attempted out of order. Verified in Session 5: walking straight to the Dinner (step 2) trigger from a fresh game, with no Pipe (step 1) completion, triggers the placeholder hurricane banner.
 - `src/index.js` sets `render.preserveDrawingBuffer: true` and `fps.forceSetTimeOut: true` so headless preview screenshots capture live WebGL state and Phaser's clock keeps advancing when the tab isn't focused. `window.__game` is exposed as a dev hook for inspection from the preview eval tool. All three are no-ops for normal play.
+- Asset preloading is centralized in `src/scenes/BootScene.js`. All sprites, tilesets, cutscene images, BGM, and SFX are loaded there with `this.load.on('loaderror', ...)` so a missing file logs a warning instead of crashing. Every scene that creates characters/tiles uses `if (this.textures.exists(key)) { sprite } else { rectangle }` — the game is fully playable with zero assets loaded.
+- Music is managed by `src/systems/MusicManager.js` — two exports: `playMusic(scene, key, volume)` and `stopMusic(scene)`. Tracks current BGM via `game.registry` (`currentMusicKey`, `currentMusicInstance`) so room transitions don't restart the overworld theme. Handles browser autoplay lock via `scene.sound.once('unlocked', ...)`.
+- `src/objects/GenericNPC.js` is a reusable NPC class taking `(scene, tileX, tileY, dialogId, textureKey, fallbackColor)`. Same `isAdjacentTo()` check as Cody/Mermaid. Uses sprite if textureKey loaded, rectangle with fallbackColor otherwise. Shows "!" marker.
 
 ## Reusable UI Components
 Plain JS classes (not Phaser scenes) that wrap a few `scene.add.*` objects. Constructed inside a minigame's `setupGame()` and destroyed automatically when the scene shuts down.
@@ -64,8 +67,17 @@ Plain JS classes (not Phaser scenes) that wrap a few `scene.add.*` objects. Cons
 
 ## Art strategy
 - Sessions 1–7: placeholder rectangles, circles, Phaser graphics primitives only
-- Session 8: real sprites are dropped in to replace placeholders
+- Session 8: real sprites replace placeholders; every creation site checks `textures.exists(key)` and falls back to the original rectangle if the asset is missing
 - One Cody variant for v1 (CodySelectScene exists as a stub but is disabled)
+
+## Asset inventory (Session 8+)
+All assets live under `public/assets/`. BootScene preloads everything; missing files log a warning and fall back to rectangles.
+
+**Sprites** (`sprites/`): captain.png (16x16), cody.png (16x12), cody-werewolf.png, cody-aquaman.png, mermaid-1.png, mermaid-2.png, k-fish-gold.png, k-fish-red.png
+**Tilesets** (`tilesets/`): floor.png, wall.png, door.png (16x16 each, extracted from boat-tileset.png)
+**Cutscenes** (`cutscenes/`): hurricane.png, aquaman.png (full-screen 256x224)
+**BGM** (`audio/`): bgm-overworld.mp3, bgm-minigame.mp3, bgm-underwater.mp3, bgm-victory.mp3, bgm-fail.mp3
+**SFX** (`audio/`): sfx-howl.wav, sfx-splash.wav, sfx-puff.wav, sfx-ding.wav, sfx-buzz.wav, sfx-hurricane.wav
 
 ## Required reading at the start of every session
 - This file (CLAUDE.md)
@@ -85,16 +97,7 @@ Plain JS classes (not Phaser scenes) that wrap a few `scene.add.*` objects. Cons
 - Do NOT mark a task complete if anything is broken — keep it in_progress and ask the user
 
 ## Current phase
-**Session 7 complete. THE GAME IS PLAYABLE END-TO-END WITH PLACEHOLDER ART.** Act 4 is in: `LullabyGame` (non-ritual 8-note RhythmBar rhythm minigame, 6 required hits, 800ms spacing) and `MermaidNap` (ritual step 4, four deterministic noise events at 3000/7500/12000/16500ms with 2s shush windows; uses an inverted `PowerMeter` tracking "sleep level" that starts at 100 and loses 25 per missed shush). `ritualProgress` can now reach `[1, 2, 3, 4]`, which emits `'victory'` on the EventBus. The Session 3 placeholder hurricane banner in `HUDScene` is gone — `CutsceneRouter` + `CutsceneScene` now handle both the fail flow (shake → spin → hurricane → Aquaman throne → RETRY) and the victory flow (beach + sun + scrolling credits → MainMenu). `CutsceneRouter` listens for `'hurricane-fail'` and `'victory'` at module scope (persists across HMR via `routerRegistered` flag) and defers the scene handoff by a `Promise.resolve().then(...)` microtask to avoid mid-update scene mutation crashes. Cabin Corridor is the 5th room (east of Main Deck, mirror of Galley topology) housing both Act 4 triggers. All three endings verified via playtest: victory path (pipe → dinner → shower → nap), fail-by-threshold (5 losses), and fail-by-order (skipping a ritual step). Game is 100% playable; next is Session 8 — art and audio pass.
+**Session 8 complete. ART + AUDIO PASS DONE.** All placeholder rectangles replaced with real pixel-art sprites (captain, cody, cody-werewolf, mermaid-1, mermaid-2, k-fish-gold, k-fish-red) and tileset tiles (floor, wall, door). Cutscene illustrations (hurricane.png, aquaman.png) render full-screen. 5 BGM tracks (overworld, minigame, underwater, victory, fail) and 6 SFX (howl, splash, puff, ding, buzz, hurricane) wired into all scenes. MusicManager handles cross-scene BGM continuity and browser autoplay lock. 4 hint NPCs added (Ghost Bartender, Parrot, Cooking Mermaid, Cabin Ghost) with dialog hinting at ritual order. Every sprite/audio reference has a graceful fallback — game runs fully with zero assets loaded. Zero console errors across all scenes.
 
-## Sprite/asset placeholder conventions (Sessions 1–7)
-- Player (Captain) = blue 16×16 rectangle
-- Cody = green 16×16 rectangle
-- Werewolf Cody = gray 16×16 rectangle with red eye dots
-- Aquaman Cody = teal 16×16 rectangle with yellow trident dot
-- Mermaids = pink 16×16 rectangles
-- K-fish (gold) = yellow K shape from two rectangles
-- K-fish (red) = red K shape from two rectangles
-- Pipe = brown 8×4 rectangle
-- Coke can = red 8×12 rectangle
-- Door / interact zone = invisible Phaser zone with a small visible icon overlay (yellow ! mark)
+## Sprite fallback conventions
+Every character/tile creation uses `if (this.textures.exists(key)) { sprite } else { rectangle }`. Color flashes use `if (obj.setTint) { obj.setTint(color) } else { obj.setFillStyle(color) }` — Sprites have `setTint`, Rectangles have `setFillStyle`. Fallback colors: Player=blue, Cody=green, Mermaids=pink (`0xff69b4`), K-fish gold=yellow, K-fish red=red, Pipe=brown, Coke=red, GenericNPCs=per-instance fallbackColor param.

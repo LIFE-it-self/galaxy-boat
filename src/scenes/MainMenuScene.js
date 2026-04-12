@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../systems/MusicManager.js';
 
 export default class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -36,5 +37,8 @@ export default class MainMenuScene extends Phaser.Scene {
     };
     btnBg.on('pointerdown', onStart);
     this.input.keyboard.on('keydown-ENTER', onStart);
+
+    // Overworld music starts here; continues into OverworldScene without restart.
+    playMusic(this, 'bgm-overworld');
   }
 }

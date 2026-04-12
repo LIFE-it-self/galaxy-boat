@@ -12,14 +12,15 @@ export class Cody {
     this.tileY = tileY;
     this.dialogId = dialogId;
 
-    // Placeholder visual: green 16x16 square. Real sprite lands in Session 8.
-    this.sprite = scene.add.rectangle(
-      tileX * TILE_SIZE + TILE_SIZE / 2,
-      tileY * TILE_SIZE + TILE_SIZE / 2,
-      TILE_SIZE,
-      TILE_SIZE,
-      COLORS.CODY
-    );
+    const px = tileX * TILE_SIZE + TILE_SIZE / 2;
+    const py = tileY * TILE_SIZE + TILE_SIZE / 2;
+
+    if (scene.textures.exists('cody')) {
+      this.sprite = scene.add.sprite(px, py, 'cody');
+      this.sprite.setDisplaySize(TILE_SIZE, TILE_SIZE);
+    } else {
+      this.sprite = scene.add.rectangle(px, py, TILE_SIZE, TILE_SIZE, COLORS.CODY);
+    }
     this.sprite.setDepth(9);
 
     // "!" marker hovering above his head, signals interactable.

@@ -9,6 +9,7 @@
 
 import { BaseMinigame } from './BaseMinigame.js';
 import { PowerMeter } from '../../ui/PowerMeter.js';
+import { playMusic } from '../../systems/MusicManager.js';
 
 export default class PipeSmoke extends BaseMinigame {
   constructor() {
@@ -16,13 +17,18 @@ export default class PipeSmoke extends BaseMinigame {
   }
 
   setupGame() {
+    playMusic(this, 'bgm-minigame');
+
     const cfg = (this.levelConfig && this.levelConfig.config) || {};
     this.required = cfg.puffsRequired || 5;
     this.puffPower = cfg.puffPower || 30;
     const decayRate = cfg.decayPerSec || 25;
 
-    // Cody (green) holding a small brown pipe at his mouth.
-    this.cody = this.add.rectangle(128, 112, 16, 16, 0x40c040);
+    if (this.textures.exists('cody')) {
+      this.cody = this.add.sprite(128, 112, 'cody').setDisplaySize(16, 16);
+    } else {
+      this.cody = this.add.rectangle(128, 112, 16, 16, 0x40c040);
+    }
     this.pipe = this.add.rectangle(138, 116, 8, 4, 0x8b4513);
 
     this.add.text(8, 16, 'TAP TO PUFF', {
@@ -50,6 +56,9 @@ export default class PipeSmoke extends BaseMinigame {
   puff() {
     if (this.state !== 'PLAY') return;
     this.powerMeter.add(this.puffPower);
+    if (this.cache.audio.exists('sfx-puff')) {
+      this.sound.play('sfx-puff', { volume: 0.7 });
+    }
 
     // Smoke ring — white circle that drifts up and fades.
     const ring = this.add.circle(138, 108, 3, 0xffffff);

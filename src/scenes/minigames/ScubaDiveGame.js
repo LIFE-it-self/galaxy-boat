@@ -15,6 +15,7 @@
 
 import Phaser from 'phaser';
 import { BaseMinigame } from './BaseMinigame.js';
+import { playMusic } from '../../systems/MusicManager.js';
 
 const PLAYER_SPEED = 60;
 
@@ -24,6 +25,8 @@ export default class ScubaDiveGame extends BaseMinigame {
   }
 
   setupGame() {
+    playMusic(this, 'bgm-underwater');
+
     const cfg = (this.levelConfig && this.levelConfig.config) || {};
     this.targetFish = cfg.targetFish || 10;
     this.lives = cfg.lives || 3;
@@ -50,13 +53,16 @@ export default class ScubaDiveGame extends BaseMinigame {
     // ── Kelp (decorative, swaying) ────────────────────────────────
     this.createKelp();
 
-    // ── Player (green circle) ─────────────────────────────────────
-    this.player = this.add.circle(128, 112, 8, 0x40c040).setDepth(10);
-    this.physics.add.existing(this.player);
-    // The default Arcade body for an Arc/Circle GameObject is rectangular —
-    // we want a circular body for nice fish overlaps. setCircle takes the
-    // radius and (optional) offsets to center the circle inside the body.
-    this.player.body.setCircle(8, 0, 0);
+    // ── Player ────────────────────────────────────────────────────
+    if (this.textures.exists('cody')) {
+      this.player = this.add.sprite(128, 112, 'cody').setDisplaySize(16, 16).setDepth(10);
+      this.physics.add.existing(this.player);
+      this.player.body.setSize(16, 16);
+    } else {
+      this.player = this.add.circle(128, 112, 8, 0x40c040).setDepth(10);
+      this.physics.add.existing(this.player);
+      this.player.body.setCircle(8, 0, 0);
+    }
     this.player.body.setCollideWorldBounds(true);
 
     // ── Fish groups + overlap callbacks ───────────────────────────
@@ -152,28 +158,30 @@ export default class ScubaDiveGame extends BaseMinigame {
     if (this.state !== 'PLAY') return;
 
     const isGold = Math.random() < 0.7;
+    const texKey = isGold ? 'k-fish-gold' : 'k-fish-red';
     const color = isGold ? 0xffd040 : 0xff4040;
 
-    // Spawn at a horizontal edge so a red fish never lands on top of the
-    // player on frame one. y stays out of HUD text zones.
     const fromRight = Math.random() < 0.5;
     const x = fromRight ? 272 : -16;
     const y = Phaser.Math.Between(40, 180);
     const speed = Phaser.Math.Between(30, 60);
     const vx = fromRight ? -speed : speed;
 
-    // K-shape (placeholder per CLAUDE.md: "yellow K shape from two
-    // rectangles" — we use three small rects to fake the diagonals).
-    const verticalBar = this.add.rectangle(-3, 0, 2, 12, color);
-    const upperArm = this.add.rectangle(2, -3, 6, 2, color);
-    const lowerArm = this.add.rectangle(2, 3, 6, 2, color);
-    const fish = this.add.container(x, y, [verticalBar, upperArm, lowerArm]);
-
-    // setSize() BEFORE physics.add.existing — Containers have no intrinsic
-    // dimensions, so without this the Arcade body would be 0x0 and overlap
-    // callbacks would never fire.
-    fish.setSize(12, 12);
-    this.physics.add.existing(fish);
+    let fish;
+    if (this.textures.exists(texKey)) {
+      fish = this.add.sprite(x, y, texKey).setDisplaySize(16, 12);
+      this.physics.add.existing(fish);
+      fish.body.setSize(16, 12);
+      if (fromRight) fish.setFlipX(true);
+    } else {
+      // Container fallback — K-shape from three rectangles.
+      const verticalBar = this.add.rectangle(-3, 0, 2, 12, color);
+      const upperArm = this.add.rectangle(2, -3, 6, 2, color);
+      const lowerArm = this.add.rectangle(2, 3, 6, 2, color);
+      fish = this.add.container(x, y, [verticalBar, upperArm, lowerArm]);
+      fish.setSize(12, 12);
+      this.physics.add.existing(fish);
+    }
     fish.body.setVelocity(vx, 0);
 
     if (isGold) this.goldFish.add(fish);
@@ -188,14 +196,21 @@ export default class ScubaDiveGame extends BaseMinigame {
     if (this.fishText && this.fishText.active) {
       this.fishText.setText('Fish: ' + this.hits + '/' + this.targetFish);
     }
-    // Brief yellow flash on the player.
+    if (this.cache.audio.exists('sfx-splash')) {
+      this.sound.play('sfx-splash', { volume: 0.7 });
+    }
     if (this.player && this.player.active) {
-      this.player.setFillStyle(0xffff00);
-      this.time.delayedCall(100, () => {
-        if (this.state === 'PLAY' && this.player && this.player.active) {
-          this.player.setFillStyle(0x40c040);
-        }
-      });
+      if (this.player.setTint) {
+        this.player.setTint(0xffff00);
+        this.time.delayedCall(100, () => {
+          if (this.state === 'PLAY' && this.player && this.player.active) this.player.clearTint();
+        });
+      } else {
+        this.player.setFillStyle(0xffff00);
+        this.time.delayedCall(100, () => {
+          if (this.state === 'PLAY' && this.player && this.player.active) this.player.setFillStyle(0x40c040);
+        });
+      }
     }
     if (this.hits >= this.targetFish) this.win();
   }
@@ -208,14 +223,21 @@ export default class ScubaDiveGame extends BaseMinigame {
     if (this.livesText && this.livesText.active) {
       this.livesText.setText('Lives: ' + this.lives);
     }
-    // Red flash + screen shake.
+    if (this.cache.audio.exists('sfx-buzz')) {
+      this.sound.play('sfx-buzz', { volume: 0.7 });
+    }
     if (this.player && this.player.active) {
-      this.player.setFillStyle(0xff4040);
-      this.time.delayedCall(150, () => {
-        if (this.state === 'PLAY' && this.player && this.player.active) {
-          this.player.setFillStyle(0x40c040);
-        }
-      });
+      if (this.player.setTint) {
+        this.player.setTint(0xff4040);
+        this.time.delayedCall(150, () => {
+          if (this.state === 'PLAY' && this.player && this.player.active) this.player.clearTint();
+        });
+      } else {
+        this.player.setFillStyle(0xff4040);
+        this.time.delayedCall(150, () => {
+          if (this.state === 'PLAY' && this.player && this.player.active) this.player.setFillStyle(0x40c040);
+        });
+      }
     }
     this.cameras.main.shake(150, 0.005);
     if (this.lives <= 0) this.lose();

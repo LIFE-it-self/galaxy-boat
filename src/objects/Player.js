@@ -14,15 +14,15 @@ export class Player {
     this.tileY = tileY;
     this.isMoving = false;
 
-    // Placeholder visual: a 16x16 solid blue square. Real sprite lands in
-    // Session 8. Position is centered in the tile (origin defaults to 0.5).
-    this.sprite = scene.add.rectangle(
-      tileX * TILE_SIZE + TILE_SIZE / 2,
-      tileY * TILE_SIZE + TILE_SIZE / 2,
-      TILE_SIZE,
-      TILE_SIZE,
-      COLORS.PLAYER
-    );
+    const px = tileX * TILE_SIZE + TILE_SIZE / 2;
+    const py = tileY * TILE_SIZE + TILE_SIZE / 2;
+
+    if (scene.textures.exists('captain')) {
+      this.sprite = scene.add.sprite(px, py, 'captain');
+      this.sprite.setDisplaySize(TILE_SIZE, TILE_SIZE);
+    } else {
+      this.sprite = scene.add.rectangle(px, py, TILE_SIZE, TILE_SIZE, COLORS.PLAYER);
+    }
     this.sprite.setDepth(10);
   }
 

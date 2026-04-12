@@ -17,6 +17,7 @@
 import Phaser from 'phaser';
 import { BaseMinigame } from './BaseMinigame.js';
 import { PowerMeter } from '../../ui/PowerMeter.js';
+import { playMusic } from '../../systems/MusicManager.js';
 
 export default class MotorboatGame extends BaseMinigame {
   constructor() {
@@ -38,6 +39,9 @@ export default class MotorboatGame extends BaseMinigame {
     this.stalled = false;
     this.touchL = false;
     this.touchR = false;
+    this.lastSplashTime = 0;
+
+    playMusic(this, 'bgm-minigame');
 
     // Background — sky (top half) + sea (bottom half).
     this.add.rectangle(128, 56, 256, 112, 0x4080ff);
@@ -46,13 +50,25 @@ export default class MotorboatGame extends BaseMinigame {
     // Dashboard Cody's face is pressed against.
     this.add.rectangle(128, 140, 200, 16, 0x886844).setStrokeStyle(1, 0xffffff);
 
-    // Cody — green 16x16, pressed into the dashboard from behind.
-    this.cody = this.add.rectangle(128, 128, 16, 16, 0x40c040);
+    // Cody — pressed into the dashboard from behind.
+    if (this.textures.exists('cody')) {
+      this.cody = this.add.sprite(128, 128, 'cody').setDisplaySize(16, 16);
+    } else {
+      this.cody = this.add.rectangle(128, 128, 16, 16, 0x40c040);
+    }
 
-    // Two pink mermaids on the dashboard. baseY anchors the sine bounce.
-    this.mermaidLeft = this.add.rectangle(96, 128, 12, 16, 0xff69b4);
+    // Two mermaids on the dashboard. baseY anchors the sine bounce.
+    if (this.textures.exists('mermaid-1')) {
+      this.mermaidLeft = this.add.sprite(96, 128, 'mermaid-1').setDisplaySize(12, 16);
+    } else {
+      this.mermaidLeft = this.add.rectangle(96, 128, 12, 16, 0xff69b4);
+    }
     this.mermaidLeft.baseY = 128;
-    this.mermaidRight = this.add.rectangle(160, 128, 12, 16, 0xff69b4);
+    if (this.textures.exists('mermaid-2')) {
+      this.mermaidRight = this.add.sprite(160, 128, 'mermaid-2').setDisplaySize(12, 16);
+    } else {
+      this.mermaidRight = this.add.rectangle(160, 128, 12, 16, 0xff69b4);
+    }
     this.mermaidRight.baseY = 128;
 
     // Vertical PowerMeter on the right. Starts at 60 so the player has a
@@ -124,8 +140,7 @@ export default class MotorboatGame extends BaseMinigame {
     if (this.state !== 'PLAY') return;
     if (this.stalled) return;
     this.powerMeter.add(this.tapPower);
-    // SPACE is a "bonus path" — do NOT touch lastAltKey so it doesn't
-    // break an in-progress Q/W alternation streak.
+    this._playSplash();
   }
 
   altKeyTap(key) {
@@ -134,13 +149,21 @@ export default class MotorboatGame extends BaseMinigame {
     const power = (this.lastAltKey === key) ? this.samePower : this.altPower;
     this.powerMeter.add(power);
     this.lastAltKey = key;
+    this._playSplash();
   }
 
   centerTap() {
     if (this.state !== 'PLAY') return;
     if (this.stalled) return;
     this.powerMeter.add(this.centerPower);
-    // Same reasoning as spaceTap — don't touch lastAltKey.
+    this._playSplash();
+  }
+
+  _playSplash() {
+    if (this.time.now - this.lastSplashTime > 80 && this.cache.audio.exists('sfx-splash')) {
+      this.sound.play('sfx-splash', { volume: 0.3 });
+      this.lastSplashTime = this.time.now;
+    }
   }
 
   emitWake() {

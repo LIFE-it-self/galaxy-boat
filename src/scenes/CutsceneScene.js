@@ -19,6 +19,7 @@
 
 import Phaser from 'phaser';
 import { GameStateManager } from '../systems/GameStateManager.js';
+import { playMusic, stopMusic } from '../systems/MusicManager.js';
 
 export default class CutsceneScene extends Phaser.Scene {
   constructor() {
@@ -57,9 +58,17 @@ export default class CutsceneScene extends Phaser.Scene {
   //   7000ms  — RETRY button (also arms SPACE/ENTER skip)
   // ─────────────────────────────────────────────────────────────────────
   playFail() {
+    playMusic(this, 'bgm-fail');
+    if (this.cache.audio.exists('sfx-hurricane')) {
+      this.sound.play('sfx-hurricane', { volume: 0.7 });
+    }
     this.cameras.main.shake(1000, 0.01);
 
-    this.cody = this.add.rectangle(128, 112, 16, 16, 0x40c040).setDepth(10);
+    if (this.textures.exists('cody')) {
+      this.cody = this.add.sprite(128, 112, 'cody').setDisplaySize(16, 16).setDepth(10);
+    } else {
+      this.cody = this.add.rectangle(128, 112, 16, 16, 0x40c040).setDepth(10);
+    }
     this.tweens.add({
       targets: this.cody,
       angle: 720,
@@ -79,14 +88,19 @@ export default class CutsceneScene extends Phaser.Scene {
 
   showHurricane() {
     if (this.state === 'DEAD') return;
-    this.add.rectangle(128, 112, 256, 224, 0x203040);
-    this.hurricane = this.add.circle(128, 112, 80, 0x606060);
-    this.tweens.add({
-      targets: this.hurricane,
-      angle: 360,
-      duration: 2000,
-      repeat: -1,
-    });
+    if (this.textures.exists('cutscene-hurricane')) {
+      const img = this.add.image(128, 112, 'cutscene-hurricane');
+      img.setDisplaySize(256, 224).setDepth(50);
+    } else {
+      this.add.rectangle(128, 112, 256, 224, 0x203040);
+      this.hurricane = this.add.circle(128, 112, 80, 0x606060);
+      this.tweens.add({
+        targets: this.hurricane,
+        angle: 360,
+        duration: 2000,
+        repeat: -1,
+      });
+    }
     this.add.text(128, 100, 'HURRICANE', {
       font: '16px monospace',
       color: '#ffffff',
@@ -98,23 +112,20 @@ export default class CutsceneScene extends Phaser.Scene {
   }
 
   showAquaman() {
-    // Paint a full black cover first so the rotating hurricane disappears.
-    // Depth 500 is above showHurricane's depth-100 HURRICANE text — without
-    // an explicit depth, the cover sits at depth 0 and the hurricane HUD
-    // labels bleed through on top of the throne.
     this.cameras.main.setBackgroundColor(0x000000);
     this.add.rectangle(128, 112, 256, 224, 0x000000).setDepth(500);
 
-    // Teal throne rectangle.
-    this.add.rectangle(128, 108, 64, 64, 0x40a0a0)
-      .setStrokeStyle(1, 0xffff80)
-      .setDepth(501);
-
-    // Aquaman Cody sitting on throne — teal rect with yellow trident dot.
-    this.add.rectangle(128, 96, 16, 16, 0x40a0a0)
-      .setStrokeStyle(1, 0xffff80)
-      .setDepth(502);
-    this.add.rectangle(128, 76, 4, 20, 0xffff80).setDepth(502); // trident
+    if (this.textures.exists('cutscene-aquaman')) {
+      const img = this.add.image(128, 112, 'cutscene-aquaman');
+      img.setDisplaySize(256, 224).setDepth(501);
+    } else {
+      // Fallback: teal throne + Aquaman Cody + trident.
+      this.add.rectangle(128, 108, 64, 64, 0x40a0a0)
+        .setStrokeStyle(1, 0xffff80).setDepth(501);
+      this.add.rectangle(128, 96, 16, 16, 0x40a0a0)
+        .setStrokeStyle(1, 0xffff80).setDepth(502);
+      this.add.rectangle(128, 76, 4, 20, 0xffff80).setDepth(502);
+    }
 
     this.add.text(128, 152, 'CODY RULES THE DEEP', {
       font: '12px monospace',
@@ -152,17 +163,20 @@ export default class CutsceneScene extends Phaser.Scene {
   //   skip armed after 400ms (last MermaidNap tap grace)
   // ─────────────────────────────────────────────────────────────────────
   playVictory() {
+    playMusic(this, 'bgm-victory');
+
     this.cameras.main.setBackgroundColor(0x000000);
     this.cameras.main.fadeIn(1000, 0, 0, 0);
 
-    // Sky + sun + beach + Cody (drawn under the fade). Sky and beach must
-    // meet exactly so there's no black gap: sky centered at 60 with height
-    // 120 covers y=0..120, beach centered at 172 with height 104 covers
-    // y=120..224.
+    // Sky + sun + beach + Cody.
     this.add.rectangle(128, 60, 256, 120, 0x60a0ff);
     this.add.circle(200, 40, 20, 0xfff080);
     this.add.rectangle(128, 172, 256, 104, 0xf0d080);
-    this.add.rectangle(128, 160, 16, 16, 0x40c040);
+    if (this.textures.exists('cody')) {
+      this.add.sprite(128, 160, 'cody').setDisplaySize(16, 16);
+    } else {
+      this.add.rectangle(128, 160, 16, 16, 0x40c040);
+    }
 
     // Title is baked into the scrolling credits block so it can't collide
     // with the credit lines as they pass through the same y-coordinates.
@@ -213,6 +227,8 @@ export default class CutsceneScene extends Phaser.Scene {
   returnToMenu() {
     if (this.returning) return;
     this.returning = true;
+
+    stopMusic(this);
 
     // Zero out registry so the next run starts clean (failureCount=0,
     // ritualProgress=[], completedMinigames=[], talkedToCody=false, ...).
