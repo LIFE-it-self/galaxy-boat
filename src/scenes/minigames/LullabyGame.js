@@ -15,6 +15,7 @@
 
 import { BaseMinigame } from './BaseMinigame.js';
 import { RhythmBar } from '../../ui/RhythmBar.js';
+import { playMusic } from '../../systems/MusicManager.js';
 
 export default class LullabyGame extends BaseMinigame {
   constructor() {
@@ -22,6 +23,8 @@ export default class LullabyGame extends BaseMinigame {
   }
 
   setupGame() {
+    playMusic(this, 'bgm-minigame');
+
     const cfg = (this.levelConfig && this.levelConfig.config) || {};
     this.beats = cfg.beats || 8;
     this.required = cfg.requiredHits || 6;
@@ -35,12 +38,25 @@ export default class LullabyGame extends BaseMinigame {
     this.add.rectangle(128, 130, 80, 20, 0x606060)
       .setStrokeStyle(1, 0x909090);
 
-    // Cody on the bed — plain green 16x16 rectangle.
-    this.cody = this.add.rectangle(128, 118, 16, 16, 0x40c040).setDepth(10);
+    // Cody on the bed.
+    if (this.textures.exists('cody')) {
+      this.cody = this.add.sprite(128, 118, 'cody').setDisplaySize(16, 16).setDepth(10);
+    } else {
+      this.cody = this.add.rectangle(128, 118, 16, 16, 0x40c040).setDepth(10);
+    }
 
-    // Two pink mermaids humming alongside — gentle 2px yoyo to feel alive.
-    const mermaidLeft = this.add.rectangle(96, 142, 14, 18, 0xff69b4).setDepth(9);
-    const mermaidRight = this.add.rectangle(160, 142, 14, 18, 0xff69b4).setDepth(9);
+    // Two mermaids humming alongside — gentle yoyo to feel alive.
+    let mermaidLeft, mermaidRight;
+    if (this.textures.exists('mermaid-1')) {
+      mermaidLeft = this.add.sprite(96, 142, 'mermaid-1').setDisplaySize(14, 18).setDepth(9);
+    } else {
+      mermaidLeft = this.add.rectangle(96, 142, 14, 18, 0xff69b4).setDepth(9);
+    }
+    if (this.textures.exists('mermaid-2')) {
+      mermaidRight = this.add.sprite(160, 142, 'mermaid-2').setDisplaySize(14, 18).setDepth(9);
+    } else {
+      mermaidRight = this.add.rectangle(160, 142, 14, 18, 0xff69b4).setDepth(9);
+    }
     this.tweens.add({
       targets: [mermaidLeft, mermaidRight],
       y: '-=3',
@@ -99,14 +115,21 @@ export default class LullabyGame extends BaseMinigame {
       if (this.hitText && this.hitText.active) {
         this.hitText.setText(this.hits + '/' + this.beats);
       }
-      // Brief darker flash on Cody to indicate the lullaby landed.
+      if (this.cache.audio.exists('sfx-ding')) {
+        this.sound.play('sfx-ding', { volume: 0.7 });
+      }
       if (this.cody && this.cody.active) {
-        this.cody.setFillStyle(0x208020);
-        this.time.delayedCall(120, () => {
-          if (this.state === 'PLAY' && this.cody && this.cody.active) {
-            this.cody.setFillStyle(0x40c040);
-          }
-        });
+        if (this.cody.setTint) {
+          this.cody.setTint(0x208020);
+          this.time.delayedCall(120, () => {
+            if (this.state === 'PLAY' && this.cody && this.cody.active) this.cody.clearTint();
+          });
+        } else {
+          this.cody.setFillStyle(0x208020);
+          this.time.delayedCall(120, () => {
+            if (this.state === 'PLAY' && this.cody && this.cody.active) this.cody.setFillStyle(0x40c040);
+          });
+        }
       }
     }
   }

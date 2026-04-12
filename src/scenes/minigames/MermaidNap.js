@@ -30,6 +30,7 @@
 
 import { BaseMinigame } from './BaseMinigame.js';
 import { PowerMeter } from '../../ui/PowerMeter.js';
+import { playMusic } from '../../systems/MusicManager.js';
 
 const NOISE_LABELS = ['SEAGULL!', 'FOGHORN!', 'WAVE CRASH!', 'PARROT!'];
 const NOISE_TIMES = [3000, 7500, 12000, 16500];
@@ -40,6 +41,8 @@ export default class MermaidNap extends BaseMinigame {
   }
 
   setupGame() {
+    playMusic(this, 'bgm-minigame');
+
     const cfg = (this.levelConfig && this.levelConfig.config) || {};
     this.numNoises = cfg.numNoises || 4;
     this.totalMs = cfg.totalDurationMs || 20000;
@@ -62,12 +65,24 @@ export default class MermaidNap extends BaseMinigame {
     this.add.rectangle(128, 140, 80, 20, 0x606060)
       .setStrokeStyle(1, 0x909090);
 
-    // Sleeping Cody — plain green 16x16 rect on the bed.
-    this.cody = this.add.rectangle(128, 128, 16, 16, 0x40c040).setDepth(10);
+    // Sleeping Cody on the bed.
+    if (this.textures.exists('cody')) {
+      this.cody = this.add.sprite(128, 128, 'cody').setDisplaySize(16, 16).setDepth(10);
+    } else {
+      this.cody = this.add.rectangle(128, 128, 16, 16, 0x40c040).setDepth(10);
+    }
 
     // Two mermaids flanking the bed, also sleeping.
-    this.add.rectangle(96, 152, 14, 18, 0xff69b4).setDepth(10);
-    this.add.rectangle(160, 152, 14, 18, 0xff69b4).setDepth(10);
+    if (this.textures.exists('mermaid-1')) {
+      this.add.sprite(96, 152, 'mermaid-1').setDisplaySize(14, 18).setDepth(10);
+    } else {
+      this.add.rectangle(96, 152, 14, 18, 0xff69b4).setDepth(10);
+    }
+    if (this.textures.exists('mermaid-2')) {
+      this.add.sprite(160, 152, 'mermaid-2').setDisplaySize(14, 18).setDepth(10);
+    } else {
+      this.add.rectangle(160, 152, 14, 18, 0xff69b4).setDepth(10);
+    }
 
     // Small "z" markers over each sleeper as a visual cue.
     this.add.text(96, 134, 'z', {
@@ -147,13 +162,21 @@ export default class MermaidNap extends BaseMinigame {
 
       // Miss penalty — drain the sleep meter. Cody flashes red briefly.
       this.meter.add(-this.wakeOnMiss);
+      if (this.cache.audio.exists('sfx-buzz')) {
+        this.sound.play('sfx-buzz', { volume: 0.7 });
+      }
       if (this.cody && this.cody.active) {
-        this.cody.setFillStyle(0xff6040);
-        this.time.delayedCall(150, () => {
-          if (this.state === 'PLAY' && this.cody && this.cody.active) {
-            this.cody.setFillStyle(0x40c040);
-          }
-        });
+        if (this.cody.setTint) {
+          this.cody.setTint(0xff6040);
+          this.time.delayedCall(150, () => {
+            if (this.state === 'PLAY' && this.cody && this.cody.active) this.cody.clearTint();
+          });
+        } else {
+          this.cody.setFillStyle(0xff6040);
+          this.time.delayedCall(150, () => {
+            if (this.state === 'PLAY' && this.cody && this.cody.active) this.cody.setFillStyle(0x40c040);
+          });
+        }
       }
 
       if (this.meter.value <= 0) {
@@ -166,6 +189,9 @@ export default class MermaidNap extends BaseMinigame {
     if (this.state !== 'PLAY' || !this.shushOpen) return;
 
     this.shushOpen = false;
+    if (this.cache.audio.exists('sfx-ding')) {
+      this.sound.play('sfx-ding', { volume: 0.7 });
+    }
 
     // Cancel the pending miss timer — this shush counts as a hit.
     if (this.shushTimer) {

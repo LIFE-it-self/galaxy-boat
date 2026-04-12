@@ -13,6 +13,7 @@
 
 import Phaser from 'phaser';
 import { BaseMinigame } from './BaseMinigame.js';
+import { playMusic } from '../../systems/MusicManager.js';
 
 const COURSES = [
   {
@@ -47,6 +48,8 @@ export default class DinnerService extends BaseMinigame {
   }
 
   setupGame() {
+    playMusic(this, 'bgm-minigame');
+
     // Header instruction (mirrors CokeDrink/PipeSmoke top-left label).
     this.add.text(8, 16, 'TAP THE MOST MICHELIN CHOICE', {
       font: '8px monospace',
@@ -116,6 +119,11 @@ export default class DinnerService extends BaseMinigame {
     this.choosing = true;
 
     const isCorrect = !!option.correct;
+
+    const sfxKey = isCorrect ? 'sfx-ding' : 'sfx-buzz';
+    if (this.cache.audio.exists(sfxKey)) {
+      this.sound.play(sfxKey, { volume: 0.7 });
+    }
 
     // Full-screen flash.
     const flashColor = isCorrect ? 0x40c040 : 0xc04040;

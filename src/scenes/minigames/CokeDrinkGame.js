@@ -12,6 +12,7 @@
 
 import { BaseMinigame } from './BaseMinigame.js';
 import { RhythmBar } from '../../ui/RhythmBar.js';
+import { playMusic } from '../../systems/MusicManager.js';
 
 export default class CokeDrinkGame extends BaseMinigame {
   constructor() {
@@ -19,12 +20,18 @@ export default class CokeDrinkGame extends BaseMinigame {
   }
 
   setupGame() {
+    playMusic(this, 'bgm-minigame');
+
     const cfg = (this.levelConfig && this.levelConfig.config) || {};
     this.beats = cfg.beats || 8;
     this.required = cfg.requiredHits || 6;
 
     // Phase A: drink ─────────────────────────────────────────────
-    this.cody = this.add.rectangle(128, 112, 16, 16, 0x40c040);
+    if (this.textures.exists('cody')) {
+      this.cody = this.add.sprite(128, 112, 'cody').setDisplaySize(16, 16);
+    } else {
+      this.cody = this.add.rectangle(128, 112, 16, 16, 0x40c040);
+    }
     this.coke = this.add.rectangle(128, 90, 8, 12, 0xff0000);
 
     this.tweens.add({
@@ -34,10 +41,12 @@ export default class CokeDrinkGame extends BaseMinigame {
       ease: 'Quad.In',
       onComplete: () => {
         if (this.state !== 'PLAY' || !this.cody.active) return;
-        this.cody.setFillStyle(0xffffff);
+        if (this.cody.setTint) this.cody.setTint(0xffffff);
+        else this.cody.setFillStyle(0xffffff);
         this.time.delayedCall(150, () => {
           if (this.state === 'PLAY' && this.cody.active) {
-            this.cody.setFillStyle(0x40c040);
+            if (this.cody.clearTint) this.cody.clearTint();
+            else this.cody.setFillStyle(0x40c040);
           }
         });
       },
@@ -47,9 +56,15 @@ export default class CokeDrinkGame extends BaseMinigame {
     this.time.delayedCall(1000, () => {
       if (this.state !== 'PLAY') return;
       if (this.coke && this.coke.active) this.coke.destroy();
-      this.cody.setFillStyle(0x808080);
-      this.eye1 = this.add.rectangle(124, 108, 2, 2, 0xff0000);
-      this.eye2 = this.add.rectangle(132, 108, 2, 2, 0xff0000);
+      if (this.textures.exists('cody-werewolf')) {
+        this.cody.setTexture('cody-werewolf');
+        this.cody.setDisplaySize(16, 16);
+      } else {
+        if (this.cody.setFillStyle) this.cody.setFillStyle(0x808080);
+        else if (this.cody.setTint) this.cody.setTint(0x808080);
+        this.eye1 = this.add.rectangle(124, 108, 2, 2, 0xff0000);
+        this.eye2 = this.add.rectangle(132, 108, 2, 2, 0xff0000);
+      }
       this.moon = this.add.circle(220, 230, 10, 0xffffff);
       this.tweens.add({
         targets: this.moon,
@@ -100,6 +115,9 @@ export default class CokeDrinkGame extends BaseMinigame {
       if (this.hitText && this.hitText.active) {
         this.hitText.setText(this.hits + '/' + this.beats);
       }
+      if (this.cache.audio.exists('sfx-howl')) {
+        this.sound.play('sfx-howl', { volume: 0.7 });
+      }
       // Moon "howl" — quick scale pulse since the moon is already white.
       if (this.moon && this.moon.active) {
         this.tweens.add({
@@ -111,10 +129,12 @@ export default class CokeDrinkGame extends BaseMinigame {
     } else {
       // Wrong-timing tap — flash Cody red briefly.
       if (this.cody && this.cody.active) {
-        this.cody.setFillStyle(0xff4040);
+        if (this.cody.setTint) this.cody.setTint(0xff4040);
+        else this.cody.setFillStyle(0xff4040);
         this.time.delayedCall(100, () => {
           if (this.state === 'PLAY' && this.cody && this.cody.active) {
-            this.cody.setFillStyle(0x808080);
+            if (this.cody.clearTint) this.cody.clearTint();
+            else this.cody.setFillStyle(0x808080);
           }
         });
       }

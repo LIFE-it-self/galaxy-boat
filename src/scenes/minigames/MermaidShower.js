@@ -16,6 +16,7 @@
 
 import Phaser from 'phaser';
 import { BaseMinigame } from './BaseMinigame.js';
+import { playMusic } from '../../systems/MusicManager.js';
 
 export default class MermaidShower extends BaseMinigame {
   constructor() {
@@ -23,6 +24,8 @@ export default class MermaidShower extends BaseMinigame {
   }
 
   setupGame() {
+    playMusic(this, 'bgm-minigame');
+
     const cfg = (this.levelConfig && this.levelConfig.config) || {};
     const greenZone = cfg.greenZone || [35, 65];
     this.greenMin = greenZone[0];
@@ -83,12 +86,24 @@ export default class MermaidShower extends BaseMinigame {
     this.add.rectangle(128, 76, 24, 6, 0xffffff).setDepth(6);
 
     // Cody — slightly taller (16x20) since he's standing, not just a head.
-    this.cody = this.add.rectangle(128, 140, 16, 20, 0x40c040).setDepth(10);
+    if (this.textures.exists('cody')) {
+      this.cody = this.add.sprite(128, 140, 'cody').setDisplaySize(16, 20).setDepth(10);
+    } else {
+      this.cody = this.add.rectangle(128, 140, 16, 20, 0x40c040).setDepth(10);
+    }
 
-    // Two pink mermaids flanking Cody. baseY anchors the splash jump.
-    this.mermaidLeft = this.add.rectangle(96, 152, 14, 18, 0xff69b4).setDepth(10);
+    // Two mermaids flanking Cody. baseY anchors the splash jump.
+    if (this.textures.exists('mermaid-1')) {
+      this.mermaidLeft = this.add.sprite(96, 152, 'mermaid-1').setDisplaySize(14, 18).setDepth(10);
+    } else {
+      this.mermaidLeft = this.add.rectangle(96, 152, 14, 18, 0xff69b4).setDepth(10);
+    }
     this.mermaidLeft.baseY = 152;
-    this.mermaidRight = this.add.rectangle(160, 152, 14, 18, 0xff69b4).setDepth(10);
+    if (this.textures.exists('mermaid-2')) {
+      this.mermaidRight = this.add.sprite(160, 152, 'mermaid-2').setDisplaySize(14, 18).setDepth(10);
+    } else {
+      this.mermaidRight = this.add.rectangle(160, 152, 14, 18, 0xff69b4).setDepth(10);
+    }
     this.mermaidRight.baseY = 152;
 
     // Labels.
@@ -185,6 +200,9 @@ export default class MermaidShower extends BaseMinigame {
 
   doSplash() {
     if (this.state !== 'PLAY') return;
+    if (this.cache.audio.exists('sfx-splash')) {
+      this.sound.play('sfx-splash', { volume: 0.7 });
+    }
 
     // Which mermaid splashes, which way the temp moves.
     const fromLeft = Math.random() < 0.5;
@@ -249,7 +267,9 @@ export default class MermaidShower extends BaseMinigame {
 
     // Cody tint reflects temperature (blue / green / red).
     if (this.cody && this.cody.active) {
-      this.cody.setFillStyle(this.codyTintForTemperature());
+      const tint = this.codyTintForTemperature();
+      if (this.cody.setTint) this.cody.setTint(tint);
+      else this.cody.setFillStyle(tint);
     }
 
     // In-zone accumulator — pauses (does NOT decrease) when out of zone.

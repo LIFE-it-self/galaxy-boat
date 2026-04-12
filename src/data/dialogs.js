@@ -33,5 +33,32 @@ export const DIALOGS = {
       'But first, the K-fish. Cody needs the K-fish.',
     ],
   },
-  // More dialogs added later
+  'bar-bartender': {
+    speaker: 'Ghost Bartender',
+    lines: [
+      'Coke first, captain. Always Coke first.',
+      'The pipe wants its smoke after the howl.',
+    ],
+  },
+  'bridge-parrot': {
+    speaker: 'Parrot',
+    lines: [
+      'BLOW THE BOAT. *squawk* SHOWER.',
+      'WET CODY. THEN SLEEPY CODY. *squawk*',
+    ],
+  },
+  'galley-cook': {
+    speaker: 'Cooking Mermaid',
+    lines: [
+      'Smell that pipe smoke? Good.',
+      'Now find the K-fish before you eat. They are slippery.',
+    ],
+  },
+  'cabin-ghost': {
+    speaker: 'Cabin Ghost',
+    lines: [
+      'The lullaby first. Then the nap.',
+      'Cody must be tired before he can sleep.',
+    ],
+  },
 };

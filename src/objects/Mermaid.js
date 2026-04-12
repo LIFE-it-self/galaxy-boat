@@ -16,14 +16,15 @@ export class Mermaid {
     this.tileY = tileY;
     this.dialogId = dialogId;
 
-    // Placeholder visual: pink 16x16 square. Real sprite lands in Session 8.
-    this.sprite = scene.add.rectangle(
-      tileX * TILE_SIZE + TILE_SIZE / 2,
-      tileY * TILE_SIZE + TILE_SIZE / 2,
-      TILE_SIZE,
-      TILE_SIZE,
-      0xff69b4
-    );
+    const px = tileX * TILE_SIZE + TILE_SIZE / 2;
+    const py = tileY * TILE_SIZE + TILE_SIZE / 2;
+
+    if (scene.textures.exists('mermaid-1')) {
+      this.sprite = scene.add.sprite(px, py, 'mermaid-1');
+      this.sprite.setDisplaySize(TILE_SIZE, TILE_SIZE);
+    } else {
+      this.sprite = scene.add.rectangle(px, py, TILE_SIZE, TILE_SIZE, 0xff69b4);
+    }
     this.sprite.setDepth(9);
 
     // "!" marker hovering above her head, signals interactable.

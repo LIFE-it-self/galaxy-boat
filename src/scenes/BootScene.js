@@ -10,27 +10,66 @@ export default class BootScene extends Phaser.Scene {
     const w = this.cameras.main.width;
     const h = this.cameras.main.height;
 
-    // Static loading bar (no real assets yet — Session 1 uses placeholder graphics)
+    // Loading bar — real progress now driven by asset loads.
     const box = this.add.graphics();
     box.fillStyle(0x222222, 0.8);
     box.fillRect(w / 2 - 80, h / 2 - 8, 160, 16);
 
     const bar = this.add.graphics();
-    bar.fillStyle(0xffffff, 1);
-    bar.fillRect(w / 2 - 78, h / 2 - 6, 156, 12);
-
     this.add.text(w / 2, h / 2 - 24, 'Loading...', {
       font: '10px monospace',
       color: '#ffffff',
     }).setOrigin(0.5);
+
+    this.load.on('progress', (value) => {
+      bar.clear();
+      bar.fillStyle(0xffffff, 1);
+      bar.fillRect(w / 2 - 78, h / 2 - 6, 156 * value, 12);
+    });
+
+    // Log warnings for missing assets instead of crashing.
+    this.load.on('loaderror', (file) => {
+      console.warn('[BootScene] Failed to load:', file.key, file.url);
+    });
+
+    // --- Sprites ---
+    this.load.image('captain', 'assets/sprites/captain.png');
+    this.load.image('cody', 'assets/sprites/cody.png');
+    this.load.image('cody-werewolf', 'assets/sprites/cody-werewolf.png');
+    this.load.image('cody-aquaman', 'assets/sprites/cody-aquaman.png');
+    this.load.image('mermaid-1', 'assets/sprites/mermaid-1.png');
+    this.load.image('mermaid-2', 'assets/sprites/mermaid-2.png');
+    this.load.image('k-fish-gold', 'assets/sprites/k-fish-gold.png');
+    this.load.image('k-fish-red', 'assets/sprites/k-fish-red.png');
+
+    // --- Tilesets ---
+    this.load.image('tile-floor', 'assets/tilesets/floor.png');
+    this.load.image('tile-wall', 'assets/tilesets/wall.png');
+    this.load.image('tile-door', 'assets/tilesets/door.png');
+
+    // --- Cutscene illustrations ---
+    this.load.image('cutscene-hurricane', 'assets/cutscenes/hurricane.png');
+    this.load.image('cutscene-aquaman', 'assets/cutscenes/aquaman.png');
+
+    // --- Background music ---
+    this.load.audio('bgm-overworld', 'assets/audio/bgm-overworld.mp3');
+    this.load.audio('bgm-minigame', 'assets/audio/bgm-minigame.mp3');
+    this.load.audio('bgm-underwater', 'assets/audio/bgm-underwater.mp3');
+    this.load.audio('bgm-victory', 'assets/audio/bgm-victory.mp3');
+    this.load.audio('bgm-fail', 'assets/audio/bgm-fail.mp3');
+
+    // --- Sound effects ---
+    this.load.audio('sfx-howl', 'assets/audio/sfx-howl.wav');
+    this.load.audio('sfx-splash', 'assets/audio/sfx-splash.wav');
+    this.load.audio('sfx-puff', 'assets/audio/sfx-puff.wav');
+    this.load.audio('sfx-ding', 'assets/audio/sfx-ding.wav');
+    this.load.audio('sfx-buzz', 'assets/audio/sfx-buzz.wav');
+    this.load.audio('sfx-hurricane', 'assets/audio/sfx-hurricane.wav');
   }
 
   create() {
     // Seed the registry with default game state before any other scene runs.
     GameStateManager.init(this.game);
-
-    this.time.delayedCall(500, () => {
-      this.scene.start('MainMenuScene');
-    });
+    this.scene.start('MainMenuScene');
   }
 }

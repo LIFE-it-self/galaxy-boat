@@ -8,10 +8,12 @@ import { ROOMS } from '../data/rooms.js';
 import { Player } from '../objects/Player.js';
 import { Cody } from '../objects/Cody.js';
 import { Mermaid } from '../objects/Mermaid.js';
+import { GenericNPC } from '../objects/GenericNPC.js';
 import { DIALOGS } from '../data/dialogs.js';
 import { LEVELS } from '../data/levels.js';
 import { EventBus } from '../systems/EventBus.js';
 import { assertCanStartRitual } from '../systems/SequenceGuard.js';
+import { playMusic } from '../systems/MusicManager.js';
 
 export default class OverworldScene extends Phaser.Scene {
   constructor() {
@@ -57,11 +59,18 @@ export default class OverworldScene extends Phaser.Scene {
     this.createTouchButtons();
     this.createTalkButton();
 
-    // 5. NPCs. Cody on the Main Deck, Galley Mermaid in the Galley.
+    // 5. NPCs. Each room has its own cast of characters.
     if (this.roomId === 'main-deck') {
       this.npcs.push(new Cody(this, 8, 6, 'cody-intro'));
+    } else if (this.roomId === 'bar') {
+      this.npcs.push(new GenericNPC(this, 4, 6, 'bar-bartender', null, 0x8080c0));
     } else if (this.roomId === 'galley') {
       this.npcs.push(new Mermaid(this, 8, 10, 'galley-mermaid'));
+      this.npcs.push(new GenericNPC(this, 12, 8, 'galley-cook', 'mermaid-2', 0xff69b4));
+    } else if (this.roomId === 'bridge') {
+      this.npcs.push(new GenericNPC(this, 8, 4, 'bridge-parrot', null, 0x40c040));
+    } else if (this.roomId === 'cabin-corridor') {
+      this.npcs.push(new GenericNPC(this, 8, 10, 'cabin-ghost', null, 0x606080));
     }
 
     // 6. Interact keys: Z and Enter both trigger talk.
@@ -77,6 +86,9 @@ export default class OverworldScene extends Phaser.Scene {
 
     // 8. Camera fade-in so room transitions feel intentional.
     this.cameras.main.fadeIn(300, 0, 0, 0);
+
+    // 9. Overworld music — continues across room transitions without restart.
+    playMusic(this, 'bgm-overworld');
   }
 
   update() {
@@ -124,31 +136,39 @@ export default class OverworldScene extends Phaser.Scene {
     });
   }
 
-  // Render every tile in this.currentRoom.layout as a colored rectangle.
+  // Render every tile in this.currentRoom.layout. Uses tile sprites if
+  // loaded, falls back to colored rectangles if assets are missing.
   renderRoomTiles() {
     const layout = this.currentRoom.layout;
     for (let y = 0; y < layout.length; y++) {
       for (let x = 0; x < layout[y].length; x++) {
         const t = layout[y][x];
-        let color, depth;
+        let texKey, color, depth;
         if (t === TILE_TYPES.WALL) {
+          texKey = 'tile-wall';
           color = COLORS.WALL;
           depth = 1;
         } else if (t === TILE_TYPES.DOOR) {
+          texKey = 'tile-door';
           color = COLORS.DOOR;
           depth = 2;
         } else {
+          texKey = 'tile-floor';
           color = COLORS.FLOOR;
           depth = 0;
         }
-        const rect = this.add.rectangle(
-          x * TILE_SIZE + TILE_SIZE / 2,
-          y * TILE_SIZE + TILE_SIZE / 2,
-          TILE_SIZE,
-          TILE_SIZE,
-          color
-        );
-        rect.setDepth(depth);
+
+        const px = x * TILE_SIZE + TILE_SIZE / 2;
+        const py = y * TILE_SIZE + TILE_SIZE / 2;
+
+        if (this.textures.exists(texKey)) {
+          const img = this.add.image(px, py, texKey);
+          img.setDisplaySize(TILE_SIZE, TILE_SIZE);
+          img.setDepth(depth);
+        } else {
+          const rect = this.add.rectangle(px, py, TILE_SIZE, TILE_SIZE, color);
+          rect.setDepth(depth);
+        }
       }
     }
   }

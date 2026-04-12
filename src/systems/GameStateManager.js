@@ -22,6 +22,9 @@ export class GameStateManager {
     // Set on the first cody-intro dialog. OverworldScene.tryInteract reads
     // this to swap subsequent Cody chats to the cody-hint-1 line.
     game.registry.set('talkedToCody', false);
+    // Music state — MusicManager reads/writes these.
+    game.registry.set('currentMusicKey', null);
+    game.registry.set('currentMusicInstance', null);
   }
 
   static getState(game) {
