@@ -151,18 +151,18 @@ export default class MermaidShower extends BaseMinigame {
 
   createTouchButtons() {
     const defs = [
-      { x: 30,  label: '\u2190', flag: 'touchLeft' },
-      { x: 226, label: '\u2192', flag: 'touchRight' },
+      { x: 34,  label: '\u2190', flag: 'touchLeft' },
+      { x: 222, label: '\u2192', flag: 'touchRight' },
     ];
     defs.forEach(def => {
-      const bg = this.add.rectangle(def.x, 200, 36, 30, 0xffffff, 0.3);
+      const bg = this.add.rectangle(def.x, 192, 44, 36, 0xffffff, 0.3);
       bg.setStrokeStyle(1, 0xffffff, 0.8);
       bg.setDepth(100);
       bg.setInteractive({ useHandCursor: true });
       bg.on('pointerdown', () => { this[def.flag] = true; });
       bg.on('pointerup',   () => { this[def.flag] = false; });
       bg.on('pointerout',  () => { this[def.flag] = false; });
-      this.add.text(def.x, 200, def.label, {
+      this.add.text(def.x, 192, def.label, {
         font: '12px monospace',
         color: '#ffffff',
       }).setOrigin(0.5).setDepth(101);

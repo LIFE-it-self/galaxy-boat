@@ -11,11 +11,41 @@ This file tracks the build session by session. Add a new row to the table at the
 | 5 | 2026-04-10 | Act 2 (ScubaDive + DinnerService) | ✓ Complete | Added three dev-ergonomics settings to `src/index.js` that were not in the plan: `render.preserveDrawingBuffer: true`, `fps.forceSetTimeOut: true`, and a `window.__game` debug hook. All needed to make headless-preview verification work at all. No gameplay impact. Mermaid tile at (8,10) kept per plan. | Physics-throttled preview still runs at ~5-9 fps in headless mode — real-time fish spawning and win/lose timing can't be verified by wall-clock playback, so win paths were verified by manually stepping `onChoose`/`spawnFish`/`update`. First proper interactive test happens next time the user plays in a real browser. HUDScene hurricane handler leaves the banner text on screen if you force-reset state mid-delayedCall (only hit by dev console flows, not real play). |
 | 6 | 2026-04-10 | Act 3 (Motorboat + MermaidShower) | ✓ Complete | Bridge triggers placed at (4,4) and (12,4) mirroring the galley pattern exactly — no 5th room added. No ParticleEmitter: tweened circles used for both wake spray and shower droplets/splashes (first-use risk inappropriate for playability session, and PipeSmoke's smoke-ring tween pattern already exists). `PowerMeter` was touched only by import; no new methods added. | Wall-clock testing (20s motorboat timer, 25s shower timer) still impossible in headless preview — final playtest must happen in a real browser on the user's machine. `targetSecondsInZone` set to 10 per Session 6 spec, not 15 as listed in GAME-DESIGN.md §2 — design doc is stale on this point (not updating it this session). |
 | 8 | 2026-04-11 | Art + Audio Pass | ✓ Complete | Tileset extracted from 1600x1600 ship illustration via Python PIL (not a tile grid). bgm-overworld was .mov, user converted to .mp3. No parrot/ghost/bartender sprites — GenericNPCs use rectangle fallback colors. | None — game is feature-complete with real art and audio. |
+| 9 | 2026-04-11 | Mobile Polish + PWA | ✓ Complete | `vite-plugin-pwa` incompatible with Vite 8 — used manual manifest + service worker instead. No new npm dependencies added. D-pad buttons 20→32, action buttons 36x30→44x36. Difficulty tuned across 7 minigames (see session notes). | User should playtest on real phone and iterate tuning values in `levels.js` if anything feels off. Service worker `CACHE_VERSION` must be bumped on future deploys to bust cache. |
 | 7 | 2026-04-10 | Act 4 + Real Cutscenes (Game Playable End-to-End) | ✓ Complete | `MermaidNap` inverts `PowerMeter` semantics (starts at 100, subtracts 25 per miss, loses at ≤0) instead of tracking wakefulness upward — this way the fill color reads green=good/red=bad the way the PowerMeter's built-in tiers already expect. CLAUDE.md's PowerMeter doc was updated to describe the pattern. Two CutsceneScene polish fixes discovered during playtest: (1) explicit depth stack in `showAquaman` (cover rect at depth 500, throne at 501+, text at 503, retry button at 510+) because the depth-0 black cover was being overdrawn by the depth-100 HURRICANE text from `showHurricane`; (2) victory cutscene sky/beach geometry now meet exactly at y=120 (sky `rect(128, 60, 256, 120)` + beach `rect(128, 172, 256, 104)`) — original numbers left a 24px black gap — and the "CODY GOT OFF THE BOAT." title is baked into the scrolling credits block as its first line rather than a static overlay, so the scrolling credits can't collide with it. | Real art and audio are still pending — Session 8. Headless-preview wall-clock testing is still impractical for MermaidNap's 20s deterministic noise schedule; the four endings were verified via direct `EventBus.emit('hurricane-fail'/'victory')` calls from the preview eval tool, with listener counts confirmed stable (`hurricane-fail: 2` = FailHandler + router, `victory: 1` = router). Full interactive playtest is still something the user should do in a real browser before Session 8 begins. |
 
 ## Session notes
 
 (Free-form notes go here, organized by session number. Use this section for anything that doesn't fit in the table — gotchas, decisions, links to commits, etc.)
+
+### Session 9
+**Mobile polish + PWA complete.** Game is ready to ship.
+
+Mobile CSS/HTML:
+- `index.html` — added `touch-action: none`, `overflow: hidden`, `position: fixed`, `overscroll-behavior: none` on html/body/canvas to prevent scroll bounce, pull-to-refresh, and accidental zoom on iOS Safari. Viewport meta updated with `maximum-scale=1.0, user-scalable=no, viewport-fit=cover`. Apple mobile web app meta tags added.
+- CSS-only landscape hint overlay — `#rotate-hint` div shown via `@media (orientation: portrait) and (max-width: 768px)`. Auto-hides when user rotates to landscape.
+
+Touch button resizing:
+- Overworld + ScubaDive d-pads: 20x20 → 32x32, repositioned to (36,158)/(36,206)/(12,182)/(60,182)
+- Overworld TALK button: 36x20 → 44x28 at (108,182), font 8px → 10px
+- MotorboatGame L/TAP/R: 36x30 → 44x36 at y=192, x inward to 34/128/222
+- MermaidShower L/R: 36x30 → 44x36 at y=192, x inward to 34/222
+
+Difficulty tuning (all in `src/data/levels.js`):
+- coke-drink: requiredHits 6→5
+- pipe-smoke: puffPower 30→35, decayPerSec 25→22
+- scuba-dive: targetFish 10→8, fishSpawnIntervalMs 600→700
+- motorboat: durationMs 20000→18000, decayPerSec 50→45, tapPower 12→14
+- mermaid-shower: greenZone [35,65]→[30,70], targetSecondsInZone 10→8, splashIntervalMs 1200→1400
+- lullaby: requiredHits 6→5, noteSpacingMs 800→900
+- mermaid-nap: shushWindowMs 2000→2500
+
+PWA:
+- `public/manifest.webmanifest` — manual manifest (display: fullscreen, orientation: landscape)
+- `public/sw.js` — cache-first service worker for offline play. Bump `CACHE_VERSION` on future deploys.
+- `public/icons/icon-192.png`, `icon-512.png` — boat silhouette on navy background, generated via Node script
+- `index.html` — manifest link, apple-touch-icon, service worker registration script
+- `vite-plugin-pwa` NOT used (incompatible with Vite 8). No new npm dependencies.
 
 ### Session 8
 **Art + audio pass complete.** All placeholder rectangles replaced with real pixel-art sprites and tileset tiles. Background music and sound effects wired into every scene. 4 hint NPCs added with dialog.

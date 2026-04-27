@@ -24,6 +24,11 @@ export default class PipeSmoke extends BaseMinigame {
     this.puffPower = cfg.puffPower || 30;
     const decayRate = cfg.decayPerSec || 25;
 
+    // Painted lounge background — falls back to default navy if image is missing.
+    if (this.textures.exists('bg-pipe-smoke')) {
+      this.add.image(128, 112, 'bg-pipe-smoke').setDepth(-100);
+    }
+
     if (this.textures.exists('cody')) {
       this.cody = this.add.sprite(128, 112, 'cody').setDisplaySize(16, 16);
     } else {

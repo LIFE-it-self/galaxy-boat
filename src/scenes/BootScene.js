@@ -41,15 +41,33 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('mermaid-2', 'assets/sprites/mermaid-2.png');
     this.load.image('k-fish-gold', 'assets/sprites/k-fish-gold.png');
     this.load.image('k-fish-red', 'assets/sprites/k-fish-red.png');
+    this.load.image('cabin-ghost', 'assets/sprites/cabin-ghost.png');
+    this.load.image('bridge-parrot', 'assets/sprites/bridge-parrot.png');
 
     // --- Tilesets ---
     this.load.image('tile-floor', 'assets/tilesets/floor.png');
     this.load.image('tile-wall', 'assets/tilesets/wall.png');
     this.load.image('tile-door', 'assets/tilesets/door.png');
 
+    // Per-room tileset variants. Keys take the form `tile-<roomId>-<kind>`.
+    // OverworldScene.renderRoomTiles() prefers these over the generic
+    // keys when available, and the BootScene `loaderror` handler covers
+    // any missing file with a console warning.
+    const ROOM_IDS = ['main-deck', 'bar', 'galley', 'bridge', 'cabin-corridor'];
+    ['floor', 'wall', 'door'].forEach(kind => {
+      ROOM_IDS.forEach(rid => {
+        this.load.image(`tile-${rid}-${kind}`, `assets/tilesets/${rid}_${kind}.png`);
+      });
+    });
+
     // --- Cutscene illustrations ---
     this.load.image('cutscene-hurricane', 'assets/cutscenes/hurricane.png');
     this.load.image('cutscene-aquaman', 'assets/cutscenes/aquaman.png');
+
+    // --- Minigame backgrounds (256x224, painted scenes) ---
+    this.load.image('bg-coke-drink', 'assets/backgrounds/bg-coke-drink.png');
+    this.load.image('bg-lullaby', 'assets/backgrounds/bg-lullaby.png');
+    this.load.image('bg-pipe-smoke', 'assets/backgrounds/bg-pipe-smoke.png');
 
     // --- Background music ---
     this.load.audio('bgm-overworld', 'assets/audio/bgm-overworld.mp3');

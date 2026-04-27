@@ -119,17 +119,17 @@ export default class MotorboatGame extends BaseMinigame {
 
   createTouchButtons() {
     const defs = [
-      { x: 30,  label: 'L',   onTap: () => this.altKeyTap('L') },
+      { x: 34,  label: 'L',   onTap: () => this.altKeyTap('L') },
       { x: 128, label: 'TAP', onTap: () => this.centerTap() },
-      { x: 226, label: 'R',   onTap: () => this.altKeyTap('R') },
+      { x: 222, label: 'R',   onTap: () => this.altKeyTap('R') },
     ];
     defs.forEach(def => {
-      const bg = this.add.rectangle(def.x, 200, 36, 30, 0xffffff, 0.3);
+      const bg = this.add.rectangle(def.x, 192, 44, 36, 0xffffff, 0.3);
       bg.setStrokeStyle(1, 0xffffff, 0.8);
       bg.setDepth(100);
       bg.setInteractive({ useHandCursor: true });
       bg.on('pointerdown', def.onTap);
-      this.add.text(def.x, 200, def.label, {
+      this.add.text(def.x, 192, def.label, {
         font: '12px monospace',
         color: '#ffffff',
       }).setOrigin(0.5).setDepth(101);

@@ -31,12 +31,15 @@ export default class LullabyGame extends BaseMinigame {
     this.spacing = cfg.noteSpacingMs || 800;
     this.hits = 0;
 
-    // Dark blue bedroom background.
-    this.add.rectangle(128, 112, 256, 224, 0x101830);
-
-    // Gray bed with a lighter stroke.
-    this.add.rectangle(128, 130, 80, 20, 0x606060)
-      .setStrokeStyle(1, 0x909090);
+    // Painted bedroom background (bedframe is part of the art).
+    // Falls back to a dark blue solid color + gray bed rect if the image is missing.
+    if (this.textures.exists('bg-lullaby')) {
+      this.add.image(128, 112, 'bg-lullaby').setDepth(-100);
+    } else {
+      this.add.rectangle(128, 112, 256, 224, 0x101830);
+      this.add.rectangle(128, 130, 80, 20, 0x606060)
+        .setStrokeStyle(1, 0x909090);
+    }
 
     // Cody on the bed.
     if (this.textures.exists('cody')) {

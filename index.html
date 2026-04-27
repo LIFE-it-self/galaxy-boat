@@ -2,25 +2,82 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0a0e27" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <title>Galaxy Boat</title>
     <style>
-      body {
+      html, body {
         margin: 0;
+        padding: 0;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
         background: #000;
+        touch-action: none;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: auto;
+      }
+      body {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 100vh;
       }
       canvas {
         image-rendering: pixelated;
         image-rendering: crisp-edges;
+        touch-action: none;
+      }
+      #game-container {
+        touch-action: none;
+      }
+
+      /* Landscape hint — shown on phone-width screens in portrait, tap to dismiss */
+      #rotate-hint {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: rgba(10, 14, 39, 0.92);
+        color: #fff;
+        font-family: monospace;
+        font-size: 18px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 12px;
+        cursor: pointer;
+      }
+      #rotate-hint .dismiss {
+        font-size: 11px;
+        color: #888;
+      }
+      @media (orientation: portrait) and (max-width: 768px) {
+        #rotate-hint:not(.hidden) {
+          display: flex;
+        }
       }
     </style>
   </head>
   <body>
+    <div id="rotate-hint" onclick="this.classList.add('hidden')">
+      <p>&#x21BB; Rotate to landscape for the best experience</p>
+      <p class="dismiss">Tap to dismiss</p>
+    </div>
     <div id="game-container"></div>
     <script type="module" src="/src/index.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>

@@ -66,8 +66,11 @@ export default class ScubaDiveGame extends BaseMinigame {
     this.player.body.setCollideWorldBounds(true);
 
     // ── Fish groups + overlap callbacks ───────────────────────────
-    this.goldFish = this.physics.add.group();
-    this.redFish = this.physics.add.group();
+    // Use regular groups (not physics groups) because physics.add.group()
+    // resets body velocity/depth when add() is called. Fish already get
+    // individual physics bodies via this.physics.add.existing() in spawnFish().
+    this.goldFish = this.add.group();
+    this.redFish = this.add.group();
     this.physics.add.overlap(this.player, this.goldFish, this.onGoldHit, null, this);
     this.physics.add.overlap(this.player, this.redFish, this.onRedHit, null, this);
 
@@ -132,13 +135,13 @@ export default class ScubaDiveGame extends BaseMinigame {
   // application happens in update().
   createTouchButtons() {
     const defs = [
-      { dir: 'up',    x: 35, y: 170, label: '\u2191' },
-      { dir: 'down',  x: 35, y: 210, label: '\u2193' },
-      { dir: 'left',  x: 15, y: 190, label: '\u2190' },
-      { dir: 'right', x: 55, y: 190, label: '\u2192' },
+      { dir: 'up',    x: 38, y: 144, label: '\u2191' },
+      { dir: 'down',  x: 38, y: 196, label: '\u2193' },
+      { dir: 'left',  x: 12, y: 170, label: '\u2190' },
+      { dir: 'right', x: 64, y: 170, label: '\u2192' },
     ];
     defs.forEach(def => {
-      const bg = this.add.rectangle(def.x, def.y, 20, 20, 0xffffff, 0.3);
+      const bg = this.add.rectangle(def.x, def.y, 32, 32, 0xffffff, 0.3);
       bg.setStrokeStyle(1, 0xffffff, 0.8);
       bg.setDepth(100);
       bg.setInteractive({ useHandCursor: true });
@@ -169,23 +172,23 @@ export default class ScubaDiveGame extends BaseMinigame {
 
     let fish;
     if (this.textures.exists(texKey)) {
-      fish = this.add.sprite(x, y, texKey).setDisplaySize(16, 12);
+      fish = this.add.sprite(x, y, texKey).setDisplaySize(20, 16);
       this.physics.add.existing(fish);
-      fish.body.setSize(16, 12);
+      fish.body.setSize(20, 16);
       if (fromRight) fish.setFlipX(true);
     } else {
       // Container fallback — K-shape from three rectangles.
-      const verticalBar = this.add.rectangle(-3, 0, 2, 12, color);
-      const upperArm = this.add.rectangle(2, -3, 6, 2, color);
-      const lowerArm = this.add.rectangle(2, 3, 6, 2, color);
+      const verticalBar = this.add.rectangle(-3, 0, 3, 16, color);
+      const upperArm = this.add.rectangle(3, -4, 8, 3, color);
+      const lowerArm = this.add.rectangle(3, 4, 8, 3, color);
       fish = this.add.container(x, y, [verticalBar, upperArm, lowerArm]);
-      fish.setSize(12, 12);
+      fish.setSize(16, 16);
       this.physics.add.existing(fish);
     }
-    fish.body.setVelocity(vx, 0);
-
     if (isGold) this.goldFish.add(fish);
     else this.redFish.add(fish);
+    fish.setDepth(5);
+    fish.body.setVelocity(vx, 0);
   }
 
   onGoldHit(_player, fish) {

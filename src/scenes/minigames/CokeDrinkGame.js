@@ -26,6 +26,11 @@ export default class CokeDrinkGame extends BaseMinigame {
     this.beats = cfg.beats || 8;
     this.required = cfg.requiredHits || 6;
 
+    // Painted background — falls back to default navy if image is missing.
+    if (this.textures.exists('bg-coke-drink')) {
+      this.add.image(128, 112, 'bg-coke-drink').setDepth(-100);
+    }
+
     // Phase A: drink ─────────────────────────────────────────────
     if (this.textures.exists('cody')) {
       this.cody = this.add.sprite(128, 112, 'cody').setDisplaySize(16, 16);

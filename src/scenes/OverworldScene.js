@@ -68,9 +68,9 @@ export default class OverworldScene extends Phaser.Scene {
       this.npcs.push(new Mermaid(this, 8, 10, 'galley-mermaid'));
       this.npcs.push(new GenericNPC(this, 12, 8, 'galley-cook', 'mermaid-2', 0xff69b4));
     } else if (this.roomId === 'bridge') {
-      this.npcs.push(new GenericNPC(this, 8, 4, 'bridge-parrot', null, 0x40c040));
+      this.npcs.push(new GenericNPC(this, 8, 4, 'bridge-parrot', 'bridge-parrot', 0x40c040));
     } else if (this.roomId === 'cabin-corridor') {
-      this.npcs.push(new GenericNPC(this, 8, 10, 'cabin-ghost', null, 0x606080));
+      this.npcs.push(new GenericNPC(this, 8, 10, 'cabin-ghost', 'cabin-ghost', 0x606080));
     }
 
     // 6. Interact keys: Z and Enter both trigger talk.
@@ -136,38 +136,34 @@ export default class OverworldScene extends Phaser.Scene {
     });
   }
 
-  // Render every tile in this.currentRoom.layout. Uses tile sprites if
-  // loaded, falls back to colored rectangles if assets are missing.
+  // Render every tile in this.currentRoom.layout. Prefers a per-room
+  // texture (`tile-<roomId>-<kind>`), falls back to the generic texture
+  // (`tile-<kind>`), falls back to a colored rectangle if neither loaded.
   renderRoomTiles() {
     const layout = this.currentRoom.layout;
+    const rid = this.currentRoom.id;
     for (let y = 0; y < layout.length; y++) {
       for (let x = 0; x < layout[y].length; x++) {
         const t = layout[y][x];
-        let texKey, color, depth;
-        if (t === TILE_TYPES.WALL) {
-          texKey = 'tile-wall';
-          color = COLORS.WALL;
-          depth = 1;
-        } else if (t === TILE_TYPES.DOOR) {
-          texKey = 'tile-door';
-          color = COLORS.DOOR;
-          depth = 2;
-        } else {
-          texKey = 'tile-floor';
-          color = COLORS.FLOOR;
-          depth = 0;
-        }
+        let kind, color, depth;
+        if (t === TILE_TYPES.WALL)      { kind = 'wall';  color = COLORS.WALL;  depth = 1; }
+        else if (t === TILE_TYPES.DOOR) { kind = 'door';  color = COLORS.DOOR;  depth = 2; }
+        else                            { kind = 'floor'; color = COLORS.FLOOR; depth = 0; }
+
+        const perRoomKey = `tile-${rid}-${kind}`;
+        const genericKey = `tile-${kind}`;
+        const texKey = this.textures.exists(perRoomKey) ? perRoomKey
+                     : this.textures.exists(genericKey) ? genericKey
+                     : null;
 
         const px = x * TILE_SIZE + TILE_SIZE / 2;
         const py = y * TILE_SIZE + TILE_SIZE / 2;
-
-        if (this.textures.exists(texKey)) {
+        if (texKey) {
           const img = this.add.image(px, py, texKey);
           img.setDisplaySize(TILE_SIZE, TILE_SIZE);
           img.setDepth(depth);
         } else {
-          const rect = this.add.rectangle(px, py, TILE_SIZE, TILE_SIZE, color);
-          rect.setDepth(depth);
+          this.add.rectangle(px, py, TILE_SIZE, TILE_SIZE, color).setDepth(depth);
         }
       }
     }
@@ -178,14 +174,14 @@ export default class OverworldScene extends Phaser.Scene {
   // a semi-transparent rectangle with a small arrow text label.
   createTouchButtons() {
     const buttonDefs = [
-      { dir: 'up',    x: 35, y: 170, label: '\u2191' }, // ↑
-      { dir: 'down',  x: 35, y: 210, label: '\u2193' }, // ↓
-      { dir: 'left',  x: 15, y: 190, label: '\u2190' }, // ←
-      { dir: 'right', x: 55, y: 190, label: '\u2192' }, // →
+      { dir: 'up',    x: 38, y: 144, label: '\u2191' }, // ↑
+      { dir: 'down',  x: 38, y: 196, label: '\u2193' }, // ↓
+      { dir: 'left',  x: 12, y: 170, label: '\u2190' }, // ←
+      { dir: 'right', x: 64, y: 170, label: '\u2192' }, // →
     ];
 
     buttonDefs.forEach(def => {
-      const bg = this.add.rectangle(def.x, def.y, 20, 20, 0xffffff, 0.3);
+      const bg = this.add.rectangle(def.x, def.y, 32, 32, 0xffffff, 0.3);
       bg.setStrokeStyle(1, 0xffffff, 0.8);
       bg.setDepth(100);
       bg.setInteractive({ useHandCursor: true });
@@ -211,16 +207,16 @@ export default class OverworldScene extends Phaser.Scene {
   // Add a TALK button next to the d-pad. Same visual style as the
   // direction buttons. Slightly wider to fit the label.
   createTalkButton() {
-    const x = 90;
-    const y = 190;
-    const bg = this.add.rectangle(x, y, 36, 20, 0xffffff, 0.3);
+    const x = 112;
+    const y = 170;
+    const bg = this.add.rectangle(x, y, 44, 28, 0xffffff, 0.3);
     bg.setStrokeStyle(1, 0xffffff, 0.8);
     bg.setDepth(100);
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerdown', () => this.tryInteract());
 
     const label = this.add.text(x, y, 'TALK', {
-      font: '8px monospace',
+      font: '10px monospace',
       color: '#ffffff',
     });
     label.setOrigin(0.5);
@@ -283,6 +279,7 @@ export default class OverworldScene extends Phaser.Scene {
     this.scene.start('TransitionScene', {
       instruction: level.instruction,
       location: level.location,
+      hint: level.hint || '',
       nextSceneKey: level.sceneKey,
       nextSceneData: {
         levelConfig: level,

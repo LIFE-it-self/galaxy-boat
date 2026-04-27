@@ -16,6 +16,7 @@ export default class TransitionScene extends Phaser.Scene {
   init(data) {
     this.instruction = (data && data.instruction) || '';
     this.location = (data && data.location) || '';
+    this.hint = (data && data.hint) || '';
     this.nextSceneKey = data && data.nextSceneKey;
     this.nextSceneData = (data && data.nextSceneData) || {};
     this.advanced = false;
@@ -25,15 +26,24 @@ export default class TransitionScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor(0x000000);
 
-    this.add.text(128, 96, this.instruction, {
+    this.add.text(128, 80, this.instruction, {
       font: '24px monospace',
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    this.add.text(128, 128, this.location, {
+    this.add.text(128, 112, this.location, {
       font: '10px monospace',
       color: '#aaaaaa',
     }).setOrigin(0.5);
+
+    if (this.hint) {
+      this.add.text(128, 140, this.hint, {
+        font: '8px monospace',
+        color: '#ffff80',
+        wordWrap: { width: 220 },
+        align: 'center',
+      }).setOrigin(0.5);
+    }
 
     this.time.delayedCall(HOLD_MS, () => this.goNext());
 
